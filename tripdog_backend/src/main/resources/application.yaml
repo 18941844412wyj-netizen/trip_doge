@@ -5,13 +5,19 @@ spring:
     active: ai
 
   datasource:
-    url: jdbc:mysql://localhost:3306/tripdog_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/trip_dog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
     username: root
-    password: password
+    password: wangweiwei123
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 server:
   port: 8080
+  servlet:
+    context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 logging:
   level:
@@ -20,4 +26,11 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.tripdog.model
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
