@@ -14,6 +14,7 @@ import {
     User,
     X
 } from 'lucide-react';
+import {Character} from "@/types";
 
 // 配置接口
 interface VoiceAssistantConfig {
@@ -30,7 +31,10 @@ interface Message {
     isStreaming?: boolean; // 添加流式标记
 }
 
-const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig }> = ({config}) => {
+const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character: Character }> = ({
+                                                                                                     config,
+                                                                                                     character
+                                                                                                 }) => {
     // 状态管理
     const [messages, setMessages] = useState<Message[]>([]);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
@@ -93,10 +97,10 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig }> = ({conf
     useEffect(() => {
         if (pendingTTSText && autoPlay && !isTTSLoading) {
             console.log('开始播放:', pendingTTSText, canStartTTS, isTTSLoading);
-            if (needPlayWordRef){
+            if (needPlayWordRef) {
                 setTTSText(needPlayWordRef.current + pendingTTSText);
                 needPlayWordRef.current = ''
-            }else {
+            } else {
                 setPendingTTSText(pendingTTSText);
             }
             const timer = setTimeout(() => {
@@ -113,7 +117,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig }> = ({conf
             return () => {
                 clearTimeout(timer);
             };
-        }else if(pendingTTSText){
+        } else if (pendingTTSText) {
             console.log('等待播放:', pendingTTSText, canStartTTS, isTTSLoading);
             needPlayWordRef.current += pendingTTSText;
         }
@@ -229,7 +233,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig }> = ({conf
                 body: JSON.stringify({
                     model: 'deepseek-chat',
                     messages: [
-                        {role: 'system', content: '你是一个友好简洁的AI助手。请用简短清晰的语言回答，避免冗长的解释。'},
+                        {role: 'system', content: character.systemPrompt},
                         ...messages.slice(-10).map(msg => ({role: msg.role, content: msg.content})),
                         {role: 'user', content: userMessage}
                     ],
@@ -319,7 +323,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig }> = ({conf
         } finally {
             setIsStreaming(false);
         }
-    }, [autoPlay, config, isTTSLoading, messages]);
+    }, [autoPlay, character, config, isTTSLoading, messages]);
 
     // 处理消息（流式发送和播放）
     const handleProcessMessage = useCallback(async (text: string) => {
@@ -401,44 +405,41 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig }> = ({conf
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-            {/* 主界面 - 居中的圆形按钮 */}
-            <div className="flex flex-col items-center justify-center min-h-screen px-4 relative">
-                {/* 顶部控制栏 - 固定位置 */}
-                <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-40">
-                    <div className="max-w-6xl mx-auto px-4 py-3">
-                        <div className="flex items-center justify-between">
-                            <h1 className="text-lg font-medium text-gray-800 block md:hidden">TripDoge</h1>
-                            <div className="hidden md:block"></div>
-                            <div className="flex items-center gap-2">
-                                {/* 自动播放开关 */}
-                                <Tooltip title={autoPlay ? "自动播放开启" : "自动播放关闭"}>
-                                    <Button
-                                        type="text"
-                                        size="small"
-                                        icon={autoPlay ? <Volume2 size={18}/> : <VolumeX size={18}/>}
-                                        onClick={() => setAutoPlay(!autoPlay)}
-                                        className={`${autoPlay ? 'text-blue-500' : 'text-gray-400'}`}
-                                    />
-                                </Tooltip>
+        <div className="bg-gradient-to-br from-gray-50 to-white h-screen flex flex-col">
+            {/* 顶部控制栏 - 固定位置 */}
+            <div className="max-w-6xl mx-auto px-4 py-3 w-full">
+                <div className="flex items-center justify-between">
+                    <div></div>
+                    <div className="flex items-center gap-2">
+                        {/* 自动播放开关 */}
+                        <Tooltip title={autoPlay ? "自动播放开启" : "自动播放关闭"}>
+                            <Button
+                                type="text"
+                                size="large"
+                                icon={autoPlay ? <Volume2 size={18}/> : <VolumeX size={18}/>}
+                                onClick={() => setAutoPlay(!autoPlay)}
+                                className={`${autoPlay ? 'text-blue-500' : 'text-gray-400'}`}
+                            />
+                        </Tooltip>
 
-                                {/* 历史记录按钮 */}
-                                <Tooltip title="对话历史">
-                                    <Badge count={messages.length} size="small" offset={[-5, 5]}>
-                                        <Button
-                                            type="text"
-                                            size="small"
-                                            icon={<History size={18}/>}
-                                            onClick={() => setShowHistory(true)}
-                                            className="text-gray-600"
-                                        />
-                                    </Badge>
-                                </Tooltip>
-                            </div>
-                        </div>
+                        {/* 历史记录按钮 */}
+                        <Tooltip title="对话历史">
+                            <Badge count={messages.length} size="default" offset={[-5, 5]}>
+                                <Button
+                                    type="text"
+                                    size="large"
+                                    icon={<History size={18}/>}
+                                    onClick={() => setShowHistory(true)}
+                                    className="text-gray-600"
+                                />
+                            </Badge>
+                        </Tooltip>
                     </div>
                 </div>
+            </div>
 
+            {/* 主界面 - 居中的圆形按钮 */}
+            <div className="flex flex-col items-center justify-center px-4 flex-1">
                 {/* 中心区域 */}
                 <div className="flex flex-col items-center gap-8 max-w-2xl w-full">
                     {/* 当前对话显示 */}
@@ -616,7 +617,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig }> = ({conf
 };
 
 // 主应用组件保持不变
-export default function VoiceChat() {
+export default function VoiceChat({character}: { character: Character }) {
     const config: VoiceAssistantConfig = {
         OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
         OPENAI_PROXY_URL: process.env.NEXT_PUBLIC_OPENAI_PROXY_URL || 'https://api.openai.com',
@@ -624,7 +625,7 @@ export default function VoiceChat() {
 
     if (!config.OPENAI_API_KEY) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center px-4">
+            <div className="min-h-screen flex items-center justify-center px-4">
                 <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
                     <div className="text-center">
                         <div
@@ -641,5 +642,5 @@ export default function VoiceChat() {
         );
     }
 
-    return <MinimalVoiceAssistant config={config}/>;
+    return <MinimalVoiceAssistant config={config} character={character}/>;
 }
