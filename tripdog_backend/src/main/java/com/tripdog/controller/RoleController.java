@@ -1,7 +1,17 @@
 package com.tripdog.controller;
 
-import com.tripdog.mapper.RoleMapper;
+import com.tripdog.common.Constants;
+import com.tripdog.common.ErrorCode;
+import com.tripdog.common.Result;
+import com.tripdog.mapper.ConversationMapper;
+import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.RoleDO;
+import com.tripdog.model.vo.RoleInfoVO;
+import com.tripdog.model.vo.UserInfoVO;
+import com.tripdog.service.ConversationService;
+import com.tripdog.service.RoleService;
+
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,29 +25,34 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoleController {
 
-    private final RoleMapper roleMapper;
+    private final RoleService roleService;
+    private final ConversationService conversationService;
+    private final ConversationMapper conversationMapper;
 
     /**
-     * 获取所有启用的角色列表
+     * 获取用户与角色对话列表
      */
-    @GetMapping
-    public List<RoleDO> getActiveRoles() {
-        return roleMapper.selectActiveRoles();
+    @PostMapping("/list")
+    public Result<List<RoleInfoVO>> getActiveRoles(HttpSession session) {
+        UserInfoVO userInfo = (UserInfoVO) session.getAttribute(Constants.USER_SESSION_KEY);
+
+        // 检查所有角色是否已创建好对话
+        List<RoleInfoVO> roleInfoList = roleService.getRoleInfoList();
+        roleInfoList.forEach(roleInfoVO -> {
+            ConversationDO conversation = conversationService.findConversationByUserAndRole(
+                userInfo.getId(), roleInfoVO.getId());
+            if(conversation == null) {
+                conversation = new ConversationDO();
+                conversation.setUserId(userInfo.getId());
+                conversation.setRoleId(roleInfoVO.getId());
+                conversation.setStatus(1);
+                conversationMapper.insert(conversation);
+            }
+            roleInfoVO.setConversationId(conversation.getConversationId());
+        });
+
+        return Result.success(roleInfoList);
     }
 
-    /**
-     * 根据ID获取角色详情
-     */
-    @GetMapping("/{id}")
-    public RoleDO getRoleById(@PathVariable Long id) {
-        return roleMapper.selectById(id);
-    }
 
-    /**
-     * 根据code获取角色
-     */
-    @GetMapping("/code/{code}")
-    public RoleDO getRoleByCode(@PathVariable String code) {
-        return roleMapper.selectByCode(code);
-    }
 }

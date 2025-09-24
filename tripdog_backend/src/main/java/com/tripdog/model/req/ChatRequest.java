@@ -9,7 +9,6 @@ import lombok.Data;
  */
 @Data
 public class ChatRequest {
-    private Long userId;
     private String roleId;
     private String message;
 }

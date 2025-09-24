@@ -21,7 +21,7 @@ public interface ChatHistoryMapper {
     /**
      * 根据ID删除聊天记录
      */
-    int deleteById(Long id);
+    int deleteById(String id);
 
     /**
      * 更新聊天记录
@@ -31,7 +31,9 @@ public interface ChatHistoryMapper {
     /**
      * 根据ID查询聊天记录
      */
-    ChatHistoryDO selectById(Long id);
+    ChatHistoryDO selectById(String id);
+
+    List<ChatHistoryDO> selectAllById(@Param("conversationId") String conversationId);
 
     /**
      * 动态条件查询聊天记录
@@ -41,11 +43,11 @@ public interface ChatHistoryMapper {
     /**
      * 获取会话最近N条消息作为AI上下文
      */
-    List<ChatHistoryDO> selectRecentMessages(@Param("conversationId") Long conversationId,
+    List<ChatHistoryDO> selectRecentMessages(@Param("conversationId") String conversationId,
                                              @Param("limit") Integer limit);
 
     /**
      * 根据会话ID删除所有聊天记录
      */
-    int deleteByConversationId(@Param("conversationId") Long conversationId);
+    int deleteByConversationId(@Param("conversationId") String conversationId);
 }
