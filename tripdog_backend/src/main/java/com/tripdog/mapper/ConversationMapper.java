@@ -21,7 +21,7 @@ public interface ConversationMapper {
     /**
      * 根据ID删除会话
      */
-    int deleteById(Long id);
+    int deleteById(String id);
 
     /**
      * 更新会话
@@ -31,7 +31,12 @@ public interface ConversationMapper {
     /**
      * 根据ID查询会话
      */
-    ConversationDO selectById(Long id);
+    ConversationDO selectById(String id);
+
+    /**
+     * 根据conversationId查询会话
+     */
+    ConversationDO selectByConversationId(String conversationId);
 
     /**
      * 动态条件查询会话列表

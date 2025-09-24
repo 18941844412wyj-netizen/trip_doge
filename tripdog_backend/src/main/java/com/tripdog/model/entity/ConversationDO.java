@@ -3,6 +3,7 @@ package com.tripdog.model.entity;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * 用户与角色对话会话表
@@ -11,9 +12,14 @@ import java.time.LocalDateTime;
 public class ConversationDO {
 
     /**
-     * 会话ID
+     * 主键
      */
     private Long id;
+
+    /**
+     * 会话业务ID - 用于持久化和关联
+     */
+    private String conversationId;
 
     /**
      * 用户ID，关联用户表
@@ -94,4 +100,11 @@ public class ConversationDO {
      * 更新时间
      */
     private LocalDateTime updatedAt;
+
+    /**
+     * 构造函数中生成UUID
+     */
+    public ConversationDO() {
+        this.conversationId = UUID.randomUUID().toString();
+    }
 }

@@ -18,7 +18,7 @@ public class IntimacyFactorsDO {
     /**
      * 会话ID
      */
-    private Long conversationId;
+    private String conversationId;
 
     /**
      * 影响因素类型
