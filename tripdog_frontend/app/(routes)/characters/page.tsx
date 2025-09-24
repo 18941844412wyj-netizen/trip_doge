@@ -1,17 +1,16 @@
 // app/(routes)/characters/page.tsx
 "use client";
 
-import { useRouter } from 'next/navigation';
-import { Card, Row, Col, Typography, Badge } from 'antd';
-import { Star } from 'lucide-react';
-import { useChatStore } from '@/stores/chatStore';
-import { motion } from 'framer-motion';
+import {useRouter} from 'next/navigation';
+import {Row, Col, Typography} from 'antd';
+import {useChatStore} from '@/stores/chatStore';
+import {motion} from 'framer-motion';
 
-const { Title, Paragraph } = Typography;
+const {Title, Paragraph} = Typography;
 
 export default function CharactersPage() {
     const router = useRouter();
-    const { characters, currentCharacter, setCurrentCharacter, createSession } = useChatStore();
+    const {characters, currentCharacter, setCurrentCharacter, createSession} = useChatStore();
 
     const handleSelectCharacter = (character: typeof characters[0]) => {
         setCurrentCharacter(character);
@@ -20,66 +19,100 @@ export default function CharactersPage() {
     };
 
     return (
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
-            <div className="text-center mb-8">
-                <Title level={2} className="text-orange-600 mb-2">
-                    <span className="font-comic">选择您的旅行伙伴 🎭</span>
-                </Title>
-                <Paragraph className="text-gray-600">
-                    每个角色都有独特的个性和专长，选择一个开始您的旅程吧！
-                </Paragraph>
+        <div className=" p-6 md:p-12 max-w-6xl mx-auto">
+            {/* 头部区域 */}
+            <div className="text-center mb-12">
+                <div
+                    className="inline-block p-6 bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg shadow-purple-200/50 mb-6">
+                    <Title level={2}
+                           className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-2">
+                        <span className="font-bold text-3xl">选择您的旅行伙伴 🎭</span>
+                    </Title>
+                    <Paragraph className="text-gray-600 text-lg">
+                        每个角色都有独特的个性和专长，选择一个开始您的旅程吧！
+                    </Paragraph>
+                </div>
             </div>
 
-            <Row gutter={[24, 24]}>
+            {/* 角色卡片网格 */}
+            <Row gutter={[32, 32]}>
                 {characters.map((character, index) => (
                     <Col xs={24} sm={12} lg={8} key={character.id}>
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
+                            initial={{opacity: 0, y: 30}}
+                            animate={{opacity: 1, y: 0}}
+                            transition={{delay: index * 0.15, duration: 0.5}}
+                            whileHover={{y: -8, transition: {duration: 0.2}}}
                         >
-                            <Badge.Ribbon
-                                text={currentCharacter?.id === character.id ? "当前选择" : ""}
-                                color="orange"
-                                style={{
-                                    display: currentCharacter?.id === character.id ? 'block' : 'none',
-                                }}
-                            >
-                                <Card
-                                    hoverable
-                                    onClick={() => handleSelectCharacter(character)}
-                                    className="h-full transform transition-all hover:scale-105"
-                                    style={{
-                                        borderRadius: '20px',
-                                        border: '3px solid #FFA500',
-                                        background: `linear-gradient(135deg, ${character.bgGradient.replace('from-', '').replace('to-', ',')}`,
-                                        boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                                        transition: 'all 0.2s ease-in-out',
-                                    }}
-                                    styles={{body:{ padding: '24px' }}}
-                                >
-                                    <div className="text-center">
-                                        <div className="text-6xl mb-4">
-                                            {character.avatar}
-                                        </div>
-                                        <Title level={4} className="mb-2 text-white font-comic">
-                                            {character.name}
-                                        </Title>
-                                        <Paragraph className="text-white/90 text-sm">
-                                            {character.description}
-                                        </Paragraph>
-                                        <div className="mt-4 flex justify-center gap-1">
-                                            {[...Array(5)].map((_, i) => (
-                                                <Star
-                                                    key={i}
-                                                    size={20}
-                                                    className={i < 4 ? 'fill-yellow-300 text-yellow-300' : 'text-yellow-300'}
-                                                />
-                                            ))}
+                            {/* 当前选择的徽章 */}
+                            {currentCharacter?.id === character.id && (
+                                <div className="relative mb-4">
+                                    <div className="absolute -top-2 -right-2 z-10">
+                                        <div
+                                            className="bg-gradient-to-r from-orange-400 to-pink-400 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg shadow-orange-200">
+                                            ✨ 当前选择
                                         </div>
                                     </div>
-                                </Card>
-                            </Badge.Ribbon>
+                                </div>
+                            )}
+
+                            {/* 主卡片 */}
+                            <div
+                                onClick={() => handleSelectCharacter(character)}
+                                className={`
+                                        relative cursor-pointer group h-full
+                                        bg-white/90 backdrop-blur-sm
+                                        rounded-3xl p-8
+                                        shadow-xl shadow-purple-200/30
+                                        hover:shadow-2xl hover:shadow-purple-300/40
+                                        transform transition-all duration-300 ease-out
+                                        border border-white/50
+                                        ${currentCharacter?.id === character.id
+                                    ? 'ring-4 ring-orange-300/50 bg-gradient-to-br from-orange-50 to-pink-50'
+                                    : 'hover:scale-105'
+                                }
+                                    `}
+                            >
+                                {/* 角色内容 */}
+                                <div className="text-center">
+                                    {/* 头像容器 */}
+                                    <div
+                                        className="mb-6 w-24 h-24 mx-auto bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center shadow-inner">
+                                        <div
+                                            className="text-5xl group-hover:scale-110 transition-transform duration-300">
+                                            {character.avatar}
+                                        </div>
+                                    </div>
+                                    {/* 角色名称 */}
+                                    <Title level={4}
+                                           className="mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 font-bold text-xl">
+                                        {character.name}
+                                    </Title>
+
+                                    {/* 描述 */}
+                                    <Paragraph className="text-gray-600 text-base leading-relaxed mb-6">
+                                        {character.description}
+                                    </Paragraph>
+
+                                    {/* 选择按钮 */}
+                                    <div className="mt-6">
+                                        <div className={`
+                                                inline-block px-6 py-3 rounded-2xl font-semibold text-sm
+                                                transition-all duration-300
+                                                ${currentCharacter?.id === character.id
+                                            ? 'bg-gradient-to-r from-orange-400 to-pink-400 text-white shadow-lg shadow-orange-200'
+                                            : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg shadow-purple-200 group-hover:from-purple-600 group-hover:to-indigo-600'
+                                        }
+                                            `}>
+                                            {currentCharacter?.id === character.id ? '已选择' : '选择角色'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 卡片光泽效果 */}
+                                <div
+                                    className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent rounded-3xl pointer-events-none"></div>
+                            </div>
                         </motion.div>
                     </Col>
                 ))}

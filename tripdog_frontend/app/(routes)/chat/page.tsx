@@ -1,17 +1,17 @@
 // app/(routes)/chat/page.tsx
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Empty, Button } from 'antd';
-import { Sparkles } from 'lucide-react';
-import { useChatStore } from '@/stores/chatStore';
+import {useEffect, useState} from 'react';
+import {useRouter} from 'next/navigation';
+import {Empty, Button} from 'antd';
+import {Sparkles} from 'lucide-react';
+import {useChatStore} from '@/stores/chatStore';
 import VoiceChat from '@/components/chat/VoiceChat';
-import { motion } from 'framer-motion';
+import {motion} from 'framer-motion';
 
 export default function ChatPage() {
     const router = useRouter();
-    const { currentCharacter} = useChatStore();
+    const {currentCharacter} = useChatStore();
     const [showWelcome, setShowWelcome] = useState(true);
 
     useEffect(() => {
@@ -42,14 +42,14 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="relative min-h-screen">
+        <div className="relative">
             {/* 欢迎动画 */}
             {showWelcome && (
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-yellow-100 to-orange-100"
+                    initial={{opacity: 0, scale: 0.8}}
+                    animate={{opacity: 1, scale: 1}}
+                    exit={{opacity: 0}}
+                    className="min-h-screen fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-yellow-100 to-orange-100"
                 >
                     <div className="text-center">
                         <div className="text-8xl mb-4 animate-bounce">
@@ -59,13 +59,13 @@ export default function ChatPage() {
                             {currentCharacter.name}
                         </h2>
                         <p className="text-gray-600">正在准备中...</p>
-                        <Sparkles className="w-8 h-8 mx-auto mt-4 text-yellow-500 animate-pulse" />
+                        <Sparkles className="w-8 h-8 mx-auto mt-4 text-yellow-500 animate-pulse"/>
                     </div>
                 </motion.div>
             )}
 
             {/* 聊天主体 */}
-            <VoiceChat character={currentCharacter} />
+            <VoiceChat character={currentCharacter}/>
         </div>
     );
 }

@@ -2,18 +2,19 @@
 
 import React, {useState, useCallback, useRef, useEffect} from 'react';
 import {useEdgeSpeech, useSpeechRecognition} from '@lobehub/tts/react';
-import {Button, Drawer, Badge, Tooltip, message, Spin} from 'antd';
+import {Tooltip, message, Spin} from 'antd';
 import {
     Mic,
     MicOff,
-    History,
     Volume2,
     VolumeX,
-    MessageSquare,
     Bot,
     User,
-    X
+    X, RotateCw
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import './VoiceChat.css'
+
 import {Character} from "@/types";
 
 // 配置接口
@@ -38,10 +39,8 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
     // 状态管理
     const [messages, setMessages] = useState<Message[]>([]);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
     const [autoPlay, setAutoPlay] = useState(true);
     const [currentAIResponse, setCurrentAIResponse] = useState('');
-    const [currentUserInput, setCurrentUserInput] = useState('');
     const [isStreaming, setIsStreaming] = useState(false); // 添加流式状态
     // const audioRef = useRef<HTMLAudioElement>(null!);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -69,7 +68,6 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
         autoStop: true,
         onRecognitionFinish: async (text: string) => {
             if (text) {
-                setCurrentUserInput(text);
                 await handleProcessMessage(text);
             }
         },
@@ -123,8 +121,6 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
         }
     }, [pendingTTSText, autoPlay, isTTSLoading, setTTSText, startTTS, canStartTTS]);
 
-// ... existing code ...
-
 
     // 解析SSE流数据
     const parseSSEStream = (text: string) => {
@@ -153,14 +149,6 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
     };
 
     function splitAtFirstValidSentenceEnding(text: string, minSentenceLength: number = 1) {
-        // 增强正则表达式，处理中英文标点，并考虑以下情况：
-        // 1. 多个连续的句末标点 (e.g., "Hello!!")。
-        // 2. 忽略英文省略号 "..." 和 Unicode 省略号 "…" (U+2026), "‥" (U+2025)。
-        // 3. 忽略数字中的小数点 (e.g., "1.2")。
-        // 4. 忽略常见英文缩写中的点 (e.g., "Mr. Smith", "e.g.").
-        // 5. 考虑中文全角句号 `．` (U+FF0E)。
-        // 6. 确保标点后不是紧跟着字母或数字 (e.g., "word.next" vs "word. Next")。
-
         const sentenceEndingRegex = new RegExp(
             // 负向后行断言 (Negative Lookbehind) - 排除非句末标点的情况
             '(?<!\\.\\.)' + // 排除英文省略号 "..." 中的第二个和第三个点
@@ -342,7 +330,6 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
             timestamp: new Date(),
         };
         setMessages(prev => [...prev, userMessage]);
-        setCurrentUserInput('');
         setIsProcessingAI(true);
         setCurrentAIResponse(''); // 清空当前AI响应
 
@@ -390,7 +377,6 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                 abortControllerRef.current.abort();
             }
             startRecording();
-            setCurrentUserInput('');
             setCurrentAIResponse('');
         }
     };
@@ -405,213 +391,242 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
     }, []);
 
     return (
-        <div className="bg-gradient-to-br from-gray-50 to-white h-screen flex flex-col">
-            {/* 顶部控制栏 - 固定位置 */}
-            <div className="max-w-6xl mx-auto px-4 py-3 w-full">
-                <div className="flex items-center justify-between">
-                    <div></div>
-                    <div className="flex items-center gap-2">
-                        {/* 自动播放开关 */}
-                        <Tooltip title={autoPlay ? "自动播放开启" : "自动播放关闭"}>
-                            <Button
-                                type="text"
-                                size="large"
-                                icon={autoPlay ? <Volume2 size={18}/> : <VolumeX size={18}/>}
-                                onClick={() => setAutoPlay(!autoPlay)}
-                                className={`${autoPlay ? 'text-blue-500' : 'text-gray-400'}`}
-                            />
-                        </Tooltip>
-
-                        {/* 历史记录按钮 */}
-                        <Tooltip title="对话历史">
-                            <Badge count={messages.length} size="default" offset={[-5, 5]}>
-                                <Button
-                                    type="text"
-                                    size="large"
-                                    icon={<History size={18}/>}
-                                    onClick={() => setShowHistory(true)}
-                                    className="text-gray-600"
-                                />
-                            </Badge>
-                        </Tooltip>
-                    </div>
-                </div>
-            </div>
-
-            {/* 主界面 - 居中的圆形按钮 */}
-            <div className="flex flex-col items-center justify-center px-4 flex-1">
-                {/* 中心区域 */}
-                <div className="flex flex-col items-center gap-8 max-w-2xl w-full">
-                    {/* 当前对话显示 */}
-                    {(currentUserInput || currentAIResponse || isProcessingAI || recognizedText) && (
-                        <div className="w-full space-y-4 mb-8 animate-fadeIn">
-                            {/* 用户输入 */}
-                            {(currentUserInput || recognizedText) && (
-                                <div className="flex items-start gap-3 justify-end">
-                                    <div
-                                        className="bg-blue-500 text-white px-4 py-2 rounded-2xl rounded-tr-sm max-w-[80%] shadow-sm">
-                                        <p className="text-sm md:text-base">{currentUserInput || recognizedText}</p>
-                                    </div>
-                                    <div
-                                        className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <User size={16} className="text-blue-600"/>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* AI回复或加载状态 - 支持流式显示 */}
-                            {(isProcessingAI || currentAIResponse) && (
-                                <div className="flex items-start gap-3">
-                                    <div
-                                        className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <Bot size={16} className="text-purple-600"/>
-                                    </div>
-                                    <div
-                                        className="bg-gray-100 px-4 py-2 rounded-2xl rounded-tl-sm max-w-[80%] shadow-sm">
-                                        {isProcessingAI && !currentAIResponse ? (
-                                            <div className="flex items-center gap-2">
-                                                <Spin size="small"/>
-                                                <span className="text-sm text-gray-500">思考中...</span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-start gap-1">
-                                                <p className="text-sm md:text-base text-gray-800">{currentAIResponse}</p>
-                                                {isStreaming && (
-                                                    <span className="inline-block w-2 h-4 bg-gray-600 animate-pulse"/>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* 主要录音按钮 */}
+        <div className="voice-root-min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50">
+            {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center voice-root-min-h-screen relative px-4">
                     <div className="relative">
-                        {/* 脉冲动画背景 */}
+                        {/* 脉冲动画背景 - 粘土风格 */}
                         {isRecording && (
                             <>
-                                <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-20"></div>
-                                <div
-                                    className="absolute inset-0 bg-red-400 rounded-full animate-ping animation-delay-200 opacity-15"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-red-300 to-red-400
+                             rounded-full animate-ping opacity-25
+                             shadow-[0_0_20px_rgba(239,68,68,0.4)]"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-red-300 to-red-400
+                             rounded-full animate-ping animation-delay-200 opacity-20
+                             shadow-[0_0_30px_rgba(239,68,68,0.3)]"></div>
                             </>
                         )}
 
-                        {/* 录音按钮 */}
+                        {/* 录音按钮 - 粘土立体效果 */}
                         <button
                             onClick={toggleRecording}
                             disabled={isRecognizing || (isProcessingAI && !isStreaming)}
                             className={`
-                relative w-32 h-32 md:w-40 md:h-40 rounded-full 
-                flex flex-col items-center justify-center gap-2
-                transition-all duration-300 transform active:scale-95
-                ${isRecording
-                                ? 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-2xl scale-110'
+              relative w-32 h-32 md:w-40 md:h-40 rounded-full 
+              flex flex-col items-center justify-center gap-2
+              transition-all duration-300 transform active:scale-95
+              before:content-[''] before:absolute before:inset-0 before:rounded-full
+              before:bg-gradient-to-t before:from-black/10 before:to-transparent before:opacity-50
+              after:content-[''] after:absolute after:inset-[2px] after:rounded-full
+              after:bg-gradient-to-t after:from-white/20 after:to-transparent
+              ${isRecording
+                                ? `bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 
+                   shadow-[0_8px_24px_rgba(59,130,246,0.4),inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.2)] 
+                   scale-110 animate-pulse`
                                 : isRecognizing || (isProcessingAI && !isStreaming)
-                                    ? 'bg-gray-300 cursor-not-allowed'
-                                    : 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-xl hover:shadow-2xl hover:scale-105'
+                                    ? `bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 cursor-not-allowed
+                   shadow-[0_4px_16px_rgba(107,114,128,0.3),inset_0_2px_4px_rgba(255,255,255,0.4)]`
+                                    : `bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 
+                   shadow-[0_6px_20px_rgba(59,130,246,0.4),inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.1)] 
+                   hover:shadow-[0_8px_24px_rgba(59,130,246,0.5),inset_0_2px_4px_rgba(255,255,255,0.4)] 
+                   hover:scale-105 hover:-translate-y-1`
                             }
-              `}
+            `}
                         >
-                            {isRecognizing ? (
-                                <div className="text-white">
-                                    <Spin size="large" className="text-white"/>
-                                </div>
-                            ) : isRecording ? (
-                                <>
-                                    <MicOff size={32} className="text-white"/>
-                                    <span className="text-white text-xs font-medium">{formattedTime}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Mic size={32} className="text-white"/>
-                                    <span className="text-white text-xs font-medium">点击说话</span>
-                                </>
-                            )}
+                            <div className="relative z-10 text-center">
+                                {isRecognizing ? (
+                                    <div className="text-white">
+                                        <Spin size="large" className="text-white"/>
+                                    </div>
+                                ) : isRecording ? (
+                                    <div className='flex flex-col justify-center items-center'>
+                                        <MicOff size={32} className="text-white drop-shadow-sm"/>
+                                        <span
+                                            className="text-white text-xs font-bold drop-shadow-sm">{formattedTime}</span>
+                                    </div>
+                                ) : (
+                                    <div className='flex flex-col justify-center items-center'>
+                                        <Mic size={32} className="text-white drop-shadow-sm"/>
+                                        <span className="text-white text-xs font-bold drop-shadow-sm">点击说话</span>
+                                    </div>
+                                )}
+                            </div>
                         </button>
                     </div>
 
-                    {/* 提示文字 */}
-                    {!currentUserInput && !currentAIResponse && !isProcessingAI && !recognizedText && (
-                        <p className="text-gray-400 text-center text-sm md:text-base animate-fadeIn">
-                            点击按钮开始对话，我会立即回复你
+                    <div className="mt-8 px-6 py-3 bg-white/60 backdrop-blur-sm rounded-2xl
+                         shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                         border border-white/30">
+                        <p className="text-gray-600 text-center text-sm md:text-base font-medium animate-fadeIn">
+                            {(isRecognizing) || (isProcessingAI && !isStreaming) ? (recognizedText ? recognizedText : '正在倾听...') : ('点击按钮开始对话，我会立即回复你 ✨')}
                         </p>
-                    )}
+                    </div>
+                </div>
+            ) : (
+                <div className="space-y-4 p-4 voice-chat-min-h-screen">
+                    {messages.map((msg) => (
+                        <div
+                            key={msg.id}
+                            className={`flex items-start gap-3 ${
+                                msg.role === 'user' ? 'flex-row-reverse' : ''
+                            }`}
+                        >
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                                            shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)] 
+                                            ${msg.role === 'user'
+                                ? 'bg-gradient-to-br from-blue-100 to-blue-200'
+                                : 'bg-gradient-to-br from-purple-100 to-purple-200'}`}>
+                                {msg.role === 'user'
+                                    ? <User size={14} className="text-blue-600"/>
+                                    : <Bot size={14} className="text-purple-600"/>
+                                }
+                            </div>
+                            <div className={`
+                  flex-1 px-4 py-3 rounded-2xl text-sm font-medium
+                  shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                  transition-all duration-200 hover:scale-[1.02] bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800
+                  ${msg.role === 'user'
+                                ? 'rounded-br-lg'
+                                : 'rounded-tl-lg cursor-pointer'
+                            }
+                `}>
+                                <div className="flex items-start gap-1">
+                                    {msg.role === 'assistant' ? (
+                                        <div className='prose prose-sm max-w-none'>
+                                            <ReactMarkdown>
+                                                {msg.content || (msg.isStreaming ? '生成中...' : '')}
+                                            </ReactMarkdown>
+                                        </div>
+                                    ) : (
+                                        <p>{msg.content || (msg.isStreaming ? '生成中...' : '')}</p>
+                                    )}
+
+                                    {msg.isStreaming && (
+                                        <span className="inline-block w-2 h-4 bg-gray-600 animate-pulse rounded-full"/>
+                                    )}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2 font-normal">
+                                    {new Date(msg.timestamp).toLocaleTimeString()}
+                                </p>
+                            </div>
+                            <div className="w-8 h-8"></div>
+                        </div>
+                    ))}
+                    <div ref={messagesEndRef}/>
+                </div>
+            )}
+
+            {/* 工具栏 - 粘土风格 */}
+            <div className="absolute bottom-0 mx-auto px-4 py-4 w-full">
+                <div className="max-w-md mx-auto bg-white/70 backdrop-blur-md rounded-2xl p-3
+                       shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                       border border-white/30">
+                    <div className="flex items-center justify-center gap-6">
+
+                        {/* 音量按钮 - 粘土风格 */}
+                        <Tooltip title={autoPlay ? "自动播放开启" : "自动播放关闭"}>
+                            <button
+                                onClick={() => setAutoPlay(!autoPlay)}
+                                className={`
+                  w-12 h-12 rounded-full flex items-center justify-center
+                  transition-all duration-300 transform active:scale-95
+                  shadow-[0_4px_12px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                  ${autoPlay
+                                    ? 'bg-gradient-to-br from-blue-400 to-blue-500 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]'
+                                    : 'bg-gradient-to-br from-gray-200 to-gray-300 text-gray-600'
+                                }
+                  hover:scale-105 hover:-translate-y-0.5
+                `}
+                            >
+                                {autoPlay ? <Volume2 size={18}/> : <VolumeX size={18}/>}
+                            </button>
+                        </Tooltip>
+
+                        {/* 刷新按钮 - 粘土风格 */}
+                        {messages.length > 0 && (<Tooltip title="重新开始">
+                            <button
+                                onClick={() => {
+                                    setMessages([]);
+                                    setCurrentAIResponse('');
+                                }}
+                                className="w-12 h-12 rounded-full flex items-center justify-center
+                          bg-gradient-to-br from-orange-300 to-orange-400 text-white
+                          shadow-[0_4px_12px_rgba(251,146,60,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                          transition-all duration-300 transform active:scale-95
+                          hover:scale-105 hover:-translate-y-0.5"
+                            >
+                                <RotateCw size={18}/>
+                            </button>
+                        </Tooltip>)}
+
+
+                        {/* 历史记录按钮 - 粘土风格 */}
+                        {messages.length > 0 && (<Tooltip title="点击说话">
+                            <div className="relative">
+                                <button
+                                    onClick={toggleRecording}
+                                    className="w-12 h-12 rounded-full flex items-center justify-center
+                            bg-gradient-to-br from-purple-300 to-purple-400 text-white
+                            shadow-[0_4px_12px_rgba(147,51,234,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                            transition-all duration-300 transform active:scale-95
+                            hover:scale-105 hover:-translate-y-0.5"
+                                >
+                                    {isRecognizing ? (
+                                        <div className="text-white">
+                                            <Spin size="small" className="text-white"/>
+                                        </div>
+                                    ) : isRecording ? (
+                                        <div className='flex flex-col'>
+                                            <MicOff size={18} className="text-white drop-shadow-sm"/>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Mic size={18} className="text-white drop-shadow-sm"/>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </Tooltip>)}
+                    </div>
                 </div>
             </div>
 
-            {/* 历史记录抽屉 */}
-            <Drawer
-                title={
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <MessageSquare size={20}/>
-                            <span>对话历史</span>
-                        </div>
-                        <Button
-                            type="text"
-                            size="small"
-                            onClick={() => setMessages([])}
-                            className="text-red-500 hover:text-red-600"
-                        >
-                            清空
-                        </Button>
-                    </div>
-                }
-                placement="right"
-                onClose={() => setShowHistory(false)}
-                open={showHistory}
-                width={400}
-                className="history-drawer"
-            >
-                {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                        <MessageSquare size={48} className="mb-3"/>
-                        <p>暂无对话记录</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {messages.map((msg) => (
-                            <div
-                                key={msg.id}
-                                className={`flex items-start gap-2 ${
-                                    msg.role === 'user' ? 'flex-row-reverse' : ''
-                                }`}
-                            >
-                                <div className={`
-                  w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
-                  ${msg.role === 'user' ? 'bg-blue-100' : 'bg-purple-100'}
-                `}>
-                                    {msg.role === 'user'
-                                        ? <User size={14} className="text-blue-600"/>
-                                        : <Bot size={14} className="text-purple-600"/>
-                                    }
-                                </div>
-                                <div className={`
-                  flex-1 px-3 py-2 rounded-lg text-sm
-                  ${msg.role === 'user'
-                                    ? 'bg-blue-50 text-gray-800'
-                                    : 'bg-gray-50 text-gray-800 cursor-pointer hover:bg-gray-100'
-                                }
-                `}
-                                >
-                                    <div className="flex items-start gap-1">
-                                        <p>{msg.content || (msg.isStreaming ? '生成中...' : '')}</p>
-                                        {msg.isStreaming && (
-                                            <span className="inline-block w-1.5 h-3 bg-gray-600 animate-pulse"/>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-gray-400 mt-1">
-                                        {new Date(msg.timestamp).toLocaleTimeString()}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef}/>
-                    </div>
-                )}
-            </Drawer>
+            {/* 历史记录抽屉 - 粘土风格 */}
+            {/*<Drawer*/}
+            {/*    title={*/}
+            {/*        <div className="flex items-center justify-between">*/}
+            {/*            <div className="flex items-center gap-2">*/}
+            {/*                <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200*/}
+            {/*                 rounded-full flex items-center justify-center*/}
+            {/*                 shadow-[0_2px_8px_rgba(147,51,234,0.2)]">*/}
+            {/*                    <MessageSquare size={16} className="text-purple-600"/>*/}
+            {/*                </div>*/}
+            {/*                <span className="font-bold text-gray-800">对话历史</span>*/}
+            {/*            </div>*/}
+            {/*            <button*/}
+            {/*                onClick={() => setMessages([])}*/}
+            {/*                className="px-3 py-1 bg-gradient-to-br from-red-400 to-red-500 text-white text-sm*/}
+            {/*            rounded-full shadow-[0_2px_8px_rgba(239,68,68,0.3)]*/}
+            {/*            hover:scale-105 transition-all duration-200"*/}
+            {/*            >*/}
+            {/*                清空*/}
+            {/*            </button>*/}
+            {/*        </div>*/}
+            {/*    }*/}
+            {/*    placement="right"*/}
+            {/*    onClose={() => setShowHistory(false)}*/}
+            {/*    open={showHistory}*/}
+            {/*    width={400}*/}
+            {/*    className="clay-drawer"*/}
+            {/*    styles={{*/}
+            {/*        body: {*/}
+            {/*            background: 'linear-gradient(to bottom right, #fef7ed, #fdf2f8)',*/}
+            {/*            padding: '16px'*/}
+            {/*        }*/}
+            {/*    }}*/}
+            {/*>*/}
+
+            {/*</Drawer>*/}
         </div>
     );
 };

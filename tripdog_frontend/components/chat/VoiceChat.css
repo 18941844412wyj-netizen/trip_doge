@@ -1,0 +1,17 @@
+.voice-root-min-h-screen{
+    min-height: 100vh;
+}
+
+.voice-chat-min-h-screen{
+    height: calc(100vh - 106px);
+}
+
+@media screen and (max-width: 768px){
+    .voice-root-min-h-screen{
+        min-height: calc(100vh - 64px);
+    }
+
+    .voice-chat-min-h-screen{
+        height: calc(100vh - 170px);
+    }
+}

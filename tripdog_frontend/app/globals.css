@@ -5,9 +5,7 @@
     --foreground: #171717;
 }
 
-::-webkit-scrollbar {
-    display: none;
-}
+
 
 @theme inline {
     --color-background: var(--background);
@@ -72,64 +70,4 @@ body {
 
 .hide-scrollbar::-webkit-scrollbar {
     display: none;
-}
-
-@layer base {
-    /* 卡通风格卡片 */
-    .cartoon-card {
-        @apply relative overflow-hidden;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .cartoon-card::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        bottom: -50%;
-        left: -50%;
-        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-        transform: rotate(45deg);
-        animation: shine 3s infinite;
-    }
-
-    @keyframes shine {
-        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-        100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-    }
-
-    /* 卡通按钮 */
-    .cartoon-button {
-        @apply rounded-full font-bold shadow-lg;
-        background: linear-gradient(135deg, #FFA500, #FF6347);
-        border: 2px solid #FF8C00;
-        transition: all 0.2s;
-    }
-
-    .cartoon-button:hover {
-        transform: translateY(-2px) scale(1.05);
-        box-shadow: 0 10px 20px rgba(255, 165, 0, 0.3);
-    }
-
-    .cartoon-button:active {
-        transform: translateY(0) scale(1);
-    }
-
-    /* 动画 */
-    @keyframes bounce-slow {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-
-    .animate-bounce-slow {
-        animation: bounce-slow 2s infinite;
-    }
-
-    /* 响应式工具类 */
-    @media (max-width: 768px) {
-        .mobile-full {
-            width: 100% !important;
-            margin: 0 !important;
-        }
-    }
 }

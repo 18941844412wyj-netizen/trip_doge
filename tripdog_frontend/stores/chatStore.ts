@@ -1,7 +1,7 @@
 // app/stores/chatStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Character, Message, ChatSession } from '@/app/types';
+import { Character, Message, ChatSession } from '@/types';
 
 interface ChatStore {
     // 角色相关
