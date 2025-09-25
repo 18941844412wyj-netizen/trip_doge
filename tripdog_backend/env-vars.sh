@@ -21,7 +21,7 @@ export SPRING_PROFILES_ACTIVE=prod
 # 端口映射配置
 export MYSQL_PORT=3306
 export APP_PORT=7979
-export DASHSCOPE_API_KEY=sk-ffb9a184afe44f4ea959d3088f9387bb
+export DASHSCOPE_API_KEY=sk-1d5e7f37d77f405a87108fc3b2a876fa
 
 # JVM配置
 export JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
