@@ -1,0 +1,215 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button, Form, Input, message, Card, Typography, Space, Spin } from 'antd';
+import { MailOutlined, LockOutlined, UserOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import Link from 'next/link';
+
+const { Title, Text } = Typography;
+
+function Countdown(props: { value: number, format: string, onFinish: () => void }) {
+    return null;
+}
+
+export default function SignupPage() {
+  const [form] = Form.useForm();
+  const router = useRouter();
+  const { register, sendEmailCode, isLoading, user } = useAuth();
+  const [error, setError] = useState('');
+  const [countdown, setCountdown] = useState(0);
+
+  // 如果用户已经登录，重定向到聊天页面
+  useEffect(() => {
+    if (user) {
+      router.push('/chat');
+    }
+  }, [user, router]);
+
+  const onFinish = async (values: { email: string; password: string; nickname: string; code: string }) => {
+    try {
+      const result = await register(values.email, values.password, values.nickname, values.code);
+      if (result.success) {
+        message.success(result.message);
+        router.push('/chat');
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError('注册过程中发生错误');
+    }
+  };
+
+  const onSendCode = async () => {
+    try {
+      const email = form.getFieldValue('email');
+      if (!email) {
+        message.error('请输入邮箱地址');
+        return;
+      }
+
+      const emailValidation = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailValidation.test(email)) {
+        message.error('请输入有效的邮箱地址');
+        return;
+      }
+
+      const result = await sendEmailCode(email);
+      if (result.success) {
+        message.success(result.message);
+        setCountdown(Date.now() + 60000); // 60秒倒计时
+      } else {
+        message.error(result.message);
+      }
+    } catch (err) {
+      message.error('发送验证码失败');
+    }
+  };
+
+  // 如果用户已经登录，显示加载状态直到重定向
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 p-4">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 p-4">
+      <Card className="w-full max-w-md shadow-xl rounded-2xl border-0 bg-white/80 backdrop-blur-sm">
+        <div className="text-center mb-8">
+          <Title level={2} className="!mb-2">创建账户</Title>
+          <Text type="secondary">填写信息开始您的旅程</Text>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
+        <Form
+          form={form}
+          name="register"
+          onFinish={onFinish}
+          layout="vertical"
+          requiredMark={false}
+        >
+          <Form.Item
+            name="email"
+            rules={[
+              { required: true, message: '请输入邮箱地址' },
+              { type: 'email', message: '请输入有效的邮箱地址' }
+            ]}
+          >
+            <Input 
+              prefix={<MailOutlined className="text-gray-400" />} 
+              placeholder="邮箱地址" 
+              size="large"
+              className="rounded-xl"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="nickname"
+            rules={[{ required: true, message: '请输入昵称' }]}
+          >
+            <Input
+              prefix={<UserOutlined className="text-gray-400" />}
+              placeholder="昵称"
+              size="large"
+              className="rounded-xl"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="code"
+            rules={[{ required: true, message: '请输入验证码' }]}
+          >
+            <Space.Compact style={{ width: '100%' }}>
+              <Input
+                prefix={<SafetyCertificateOutlined className="text-gray-400" />}
+                placeholder="验证码"
+                size="large"
+                className="rounded-l-xl flex-1"
+              />
+              <Button 
+                size="large" 
+                onClick={onSendCode}
+                disabled={countdown > Date.now()}
+                className="rounded-r-xl"
+              >
+                {countdown > Date.now() ? (
+                  <Countdown 
+                    value={countdown} 
+                    format="s秒后重试" 
+                    onFinish={() => setCountdown(0)} 
+                  />
+                ) : '发送验证码'}
+              </Button>
+            </Space.Compact>
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: '请输入密码' },
+              { min: 6, message: '密码至少6位' }
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined className="text-gray-400" />}
+              placeholder="密码"
+              size="large"
+              className="rounded-xl"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="confirm"
+            dependencies={['password']}
+            rules={[
+              { required: true, message: '请确认密码' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('两次输入的密码不一致'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined className="text-gray-400" />}
+              placeholder="确认密码"
+              size="large"
+              className="rounded-xl"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button 
+              type="primary" 
+              htmlType="submit" 
+              size="large" 
+              loading={isLoading}
+              className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 border-0"
+            >
+              注册
+            </Button>
+          </Form.Item>
+        </Form>
+
+        <div className="text-center mt-6">
+          <Text type="secondary">已有账户？</Text>{' '}
+          <Link href="/login" className="text-blue-500 hover:text-blue-700 font-medium">
+            立即登录
+          </Link>
+        </div>
+      </Card>
+    </div>
+  );
+}
