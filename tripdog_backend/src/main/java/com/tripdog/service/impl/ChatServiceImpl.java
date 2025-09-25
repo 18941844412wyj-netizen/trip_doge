@@ -1,24 +1,20 @@
 package com.tripdog.service.impl;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.tripdog.ai.AssistantService;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.model.entity.ConversationDO;
-import com.tripdog.model.entity.ChatHistoryDO;
 import com.tripdog.model.entity.RoleDO;
 import com.tripdog.model.req.ChatRequest;
 import com.tripdog.service.ChatService;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
+import com.tripdog.util.RoleConfigParser;
 
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,10 +38,9 @@ public class ChatServiceImpl implements ChatService {
         SseEmitter emitter = new SseEmitter(-1L);
 
         try {
-            String message = chatRequest.getMessage();
-
             // 1. 获取或创建会话
             ConversationDO conversation = conversationServiceImpl.getOrCreateConversation(userId, roleId);
+
 
             // 2. 获取角色信息
             RoleDO role = roleMapper.selectById(roleId);
@@ -54,8 +49,16 @@ public class ChatServiceImpl implements ChatService {
                 return emitter;
             }
 
+            // 3. 从角色配置中提取系统提示词
+            String systemPrompt = RoleConfigParser.extractSystemPrompt(role.getAiSetting());
+            log.info("角色[{}]使用系统提示词: {}", role.getName(), systemPrompt);
+
             StringBuilder responseBuilder = new StringBuilder();
-            TokenStream stream = assistant.chat(conversation.getConversationId(), chatRequest.getMessage());
+            // 使用角色专用的聊天助手，传入角色的系统提示词
+            TokenStream stream = assistant.chat(
+                conversation.getConversationId(),
+                chatRequest.getMessage()
+            );
 
             stream.onPartialResponse((data) -> {
                 try {

@@ -2,11 +2,9 @@ package com.tripdog.ai;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 import com.tripdog.ai.assistant.ChatAssistant;
 
-import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.service.AiServices;
@@ -35,4 +33,5 @@ public class AssistantService {
                 .build())
             .build();
     }
+
 }

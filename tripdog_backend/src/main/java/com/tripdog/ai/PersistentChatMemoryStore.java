@@ -8,8 +8,10 @@ import org.springframework.stereotype.Component;
 
 import com.alibaba.dashscope.tokenizers.Tokenizer;
 import com.alibaba.dashscope.tokenizers.TokenizerFactory;
+import com.tripdog.common.Constants;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.model.entity.ChatHistoryDO;
+import com.tripdog.model.builder.ConversationBuilder;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageDeserializer;
@@ -35,6 +37,7 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
     private final Tokenizer tokenizer = TokenizerFactory.qwen();
     private final String USER = "user";
     private final String ASSISTANT = "assistant";
+    private final String SYSTEM = "system";
 
 
     @Override
@@ -50,6 +53,9 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
                 case ASSISTANT:
                     chatMessages.add(AiMessage.from(d.getContent()));
                     break;
+                case SYSTEM:
+                    chatMessages.add(SystemMessage.from(d.getContent()));
+                    break;
             }
         }
         return chatMessages;
@@ -61,11 +67,15 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         ChatMessage latestMessage = list.getLast();
         String role = getRoleFromMessage(latestMessage);
         String message = getContentMessage(latestMessage);
-        ChatHistoryDO chatHistoryDO = new ChatHistoryDO();
-        chatHistoryDO.setConversationId(conversationId);
-        chatHistoryDO.setRole(role);
-        chatHistoryDO.setContent(message);
-        chatHistoryDO.setCreatedAt(LocalDateTime.now());
+        
+        ChatHistoryDO chatHistoryDO;
+        if (Constants.USER.equals(role)) {
+            chatHistoryDO = ConversationBuilder.buildUserMessage(conversationId, message);
+        } else if (Constants.ASSISTANT.equals(role)) {
+            chatHistoryDO = ConversationBuilder.buildAssistantMessage(conversationId, message);
+        } else {
+            chatHistoryDO = ConversationBuilder.buildSystemMessage(conversationId, message);
+        }
 
         chatHistoryMapper.insert(chatHistoryDO);
     }
@@ -79,11 +89,11 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
 
     private String getRoleFromMessage(ChatMessage message) {
         if (message instanceof SystemMessage) {
-            return "system";
+            return SYSTEM;
         } else if (message instanceof UserMessage) {
-            return "user";
+            return USER;
         } else if (message instanceof AiMessage) {
-            return "assistant";
+            return ASSISTANT;
         }else if (message instanceof ToolExecutionResultMessage) {
             return "tool";
         } else if (message instanceof CustomMessage) {

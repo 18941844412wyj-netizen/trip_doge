@@ -1,12 +1,15 @@
 package com.tripdog.service.impl;
 
+import com.tripdog.common.Constants;
 import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.ChatHistoryDO;
 import com.tripdog.model.entity.RoleDO;
+import com.tripdog.model.builder.ConversationBuilder;
 import com.tripdog.service.ConversationService;
+import com.tripdog.service.RoleService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,7 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationMapper conversationMapper;
     private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;
+    private final RoleService roleService;
 
     /**
      * 获取或创建用户与角色的会话
@@ -35,10 +39,11 @@ public class ConversationServiceImpl implements ConversationService {
     @Transactional
     public ConversationDO getOrCreateConversation(Long userId, Long roleId) {
         // 先尝试查找已存在的会话
-        ConversationDO existingConversation = findConversationByUserAndRole(userId, roleId);
-        if (existingConversation != null) {
-            return existingConversation;
+        ConversationDO conversation = findConversationByUserAndRole(userId, roleId);
+        if (conversation != null) {
+            return conversation;
         }
+
 
         // 会话不存在，创建新会话
         return createNewConversation(userId, roleId);
@@ -68,21 +73,14 @@ public class ConversationServiceImpl implements ConversationService {
         }
 
         // 创建会话
-        ConversationDO conversation = new ConversationDO();
-        conversation.setUserId(userId);
-        conversation.setRoleId(roleId);
-        conversation.setTitle("与" + role.getName() + "的对话");
-        conversation.setConversationType("COMPANION");
-        conversation.setStatus(1); // 活跃状态
-        conversation.setIntimacyLevel(0); // 初始亲密度
-        conversation.setMessageCount(0);
-        conversation.setTotalInputTokens(0);
-        conversation.setTotalOutputTokens(0);
-        conversation.setContextWindowSize(20); // 默认记忆20条消息
-        conversation.setCreatedAt(LocalDateTime.now());
-        conversation.setUpdatedAt(LocalDateTime.now());
-
+        ConversationDO conversation = ConversationBuilder.buildNewConversation(userId, roleId, role.getName());
         conversationMapper.insert(conversation);
+
+        // 设置系统提示词 todo 解耦
+        String systemPrompt = roleService.getSystemPrompt(roleId);
+        ChatHistoryDO chatHistory = ConversationBuilder.buildSystemMessage(conversation.getConversationId(), systemPrompt);
+        chatHistoryMapper.insert(chatHistory);
+
         return conversation;
     }
 
@@ -94,12 +92,7 @@ public class ConversationServiceImpl implements ConversationService {
     @Transactional
     public void resetConversationContext(String conversationId) {
         // 插入上下文重置标记
-        ChatHistoryDO resetMessage = new ChatHistoryDO();
-        resetMessage.setConversationId(conversationId);
-        resetMessage.setRole("system");
-        resetMessage.setContent("[CONTEXT_RESET]");
-        resetMessage.setCreatedAt(LocalDateTime.now());
-
+        ChatHistoryDO resetMessage = ConversationBuilder.buildResetMessage(conversationId);
         chatHistoryMapper.insert(resetMessage);
 
         // 更新会话信息 - 根据conversationId查找会话

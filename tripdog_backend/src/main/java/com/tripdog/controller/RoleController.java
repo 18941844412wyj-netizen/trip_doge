@@ -7,6 +7,7 @@ import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.RoleDO;
 import com.tripdog.model.vo.RoleInfoVO;
+import com.tripdog.model.vo.RoleDetailVO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ConversationService;
 import com.tripdog.service.RoleService;
@@ -42,11 +43,7 @@ public class RoleController {
             ConversationDO conversation = conversationService.findConversationByUserAndRole(
                 userInfo.getId(), roleInfoVO.getId());
             if(conversation == null) {
-                conversation = new ConversationDO();
-                conversation.setUserId(userInfo.getId());
-                conversation.setRoleId(roleInfoVO.getId());
-                conversation.setStatus(1);
-                conversationMapper.insert(conversation);
+                conversation = conversationService.getOrCreateConversation(userInfo.getId(), roleInfoVO.getId());
             }
             roleInfoVO.setConversationId(conversation.getConversationId());
         });
@@ -54,5 +51,19 @@ public class RoleController {
         return Result.success(roleInfoList);
     }
 
+    /**
+     * 获取角色详情
+     *
+     * @param roleId 角色ID
+     * @return 角色详情信息
+     */
+    @GetMapping("/{roleId}/detail")
+    public Result<RoleDetailVO> getRoleDetail(@PathVariable Long roleId) {
+        RoleDetailVO roleDetail = roleService.getRoleDetailById(roleId);
+        if (roleDetail == null) {
+            return Result.error(ErrorCode.NOT_FOUND_ERROR, "角色不存在");
+        }
+        return Result.success(roleDetail);
+    }
 
 }
