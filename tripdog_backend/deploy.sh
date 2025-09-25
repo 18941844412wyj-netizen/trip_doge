@@ -15,11 +15,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 项目配置
-PROJECT_NAME="tripdog-backend"
-DOCKER_IMAGE_NAME="tripdog/backend"
-DOCKER_CONTAINER_NAME="tripdog-backend"
-
 # 函数：打印信息
 print_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -32,6 +27,22 @@ print_warning() {
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
+
+# 加载环境变量
+if [ -f "env-vars.sh" ]; then
+    print_info "加载环境变量配置..."
+    source env-vars.sh
+elif [ -f ".env" ]; then
+    print_info "加载 .env 文件..."
+    export $(grep -v '^#' .env | xargs)
+else
+    print_warning "未找到环境变量配置文件，使用默认配置"
+fi
+
+# 项目配置（可以被环境变量覆盖）
+PROJECT_NAME="${PROJECT_NAME:-tripdog-backend}"
+DOCKER_IMAGE_NAME="${DOCKER_IMAGE_NAME:-tripdog/backend}"
+DOCKER_CONTAINER_NAME="${DOCKER_CONTAINER_NAME:-tripdog-backend}"
 
 # 检查Docker是否安装
 check_docker() {
