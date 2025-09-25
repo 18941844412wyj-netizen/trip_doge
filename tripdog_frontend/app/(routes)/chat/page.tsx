@@ -3,16 +3,25 @@
 
 import {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {Empty, Button} from 'antd';
+import {Empty, Button, Spin} from 'antd';
 import {Sparkles} from 'lucide-react';
 import {useChatStore} from '@/stores/chatStore';
 import VoiceChat from '@/components/chat/VoiceChat';
 import {motion} from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ChatPage() {
     const router = useRouter();
     const {currentCharacter} = useChatStore();
+    const { user, isLoading } = useAuth();
     const [showWelcome, setShowWelcome] = useState(true);
+
+    // 检查用户是否已登录
+    useEffect(() => {
+        if (!isLoading && !user) {
+            router.push('/login');
+        }
+    }, [user, isLoading, router]);
 
     useEffect(() => {
         if (!currentCharacter) {
@@ -21,6 +30,15 @@ export default function ChatPage() {
             setTimeout(() => setShowWelcome(false), 2000);
         }
     }, [currentCharacter, router]);
+
+    // 如果用户未登录，显示加载状态
+    if (isLoading || !user) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Spin size="large" />
+            </div>
+        );
+    }
 
     if (!currentCharacter) {
         return (

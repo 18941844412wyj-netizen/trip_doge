@@ -10,7 +10,7 @@ import {
     VolumeX,
     Bot,
     User,
-    X, RotateCw
+    X, RotateCw, History
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import './VoiceChat.css'
@@ -42,6 +42,8 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
     const [autoPlay, setAutoPlay] = useState(true);
     const [currentAIResponse, setCurrentAIResponse] = useState('');
     const [isStreaming, setIsStreaming] = useState(false); // 添加流式状态
+    const [showHistory, setShowHistory] = useState(false); // 添加历史记录显示状态
+    const [inputValue, setInputValue] = useState(''); // 添加输入框状态
     // const audioRef = useRef<HTMLAudioElement>(null!);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null); // 用于中断流式请求
@@ -77,7 +79,6 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
     });
 
     // 文字转语音 (TTS)
-    // ... existing code ...
     const {
         setText: setTTSText,
         isGlobalLoading: isTTSLoading,
@@ -367,8 +368,20 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
         }
     }, [getAIResponseStream]);
 
+    // 处理发送消息
+    const handleSendMessage = async () => {
+        if (!inputValue.trim() || isProcessingAI || isStreaming) return;
+        
+        const text = inputValue.trim();
+        setInputValue('');
+        await handleProcessMessage(text);
+    };
+
     // 切换录音
     const toggleRecording = () => {
+        // 如果AI正在处理或流式传输，则不允许录音
+        if (isProcessingAI || isStreaming) return;
+        
         if (isRecording) {
             stopRecording();
         } else {
@@ -379,6 +392,32 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
             startRecording();
             setCurrentAIResponse('');
         }
+    };
+
+    // 获取录音按钮的样式类
+    const getRecordingButtonClass = () => {
+        const baseClasses = `
+          relative w-28 h-28 md:w-34 md:h-34 rounded-full 
+          flex flex-col items-center justify-center gap-2
+          transition-all duration-300 transform active:scale-95
+          before:content-[''] before:absolute before:inset-0 before:rounded-full
+          before:bg-gradient-to-t before:from-black/10 before:to-transparent before:opacity-50
+          after:content-[''] after:absolute after:inset-[2px] after:rounded-full
+          after:bg-gradient-to-t after:from-white/20 after:to-transparent
+        `;
+
+        if (isRecording) {
+            return `${baseClasses} 
+              bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 
+              shadow-[0_8px_24px_rgba(59,130,246,0.4),inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.2)] 
+              scale-110 animate-pulse`;
+        }
+
+        return `${baseClasses}
+          bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 
+          shadow-[0_6px_20px_rgba(59,130,246,0.4),inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.1)] 
+          hover:shadow-[0_8px_24px_rgba(59,130,246,0.5),inset_0_2px_4px_rgba(255,255,255,0.4)] 
+          hover:scale-105 hover:-translate-y-1`;
     };
 
     // 组件卸载时清理
@@ -392,8 +431,84 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
 
     return (
         <div className="voice-root-min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50">
+            {/* 头部 */}
+            <div className='hidden md:block sticky top-0 w-full mx-auto'>
+                <div
+                    className="flex items-center justify-between p-4 bg-orange-100/75 backdrop-blur-sm shadow-lg">
+                    <div className="flex items-center gap-3">
+                        {/* 角色头像 */}
+                        <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center shadow-md"
+                            style={{background: character.bgGradient}}
+                        >
+                                <span className="font-bold text-white drop-shadow-md">
+                                    {character.avatar}
+                                </span>
+                        </div>
+
+                        {/* 角色信息 */}
+                        <div>
+                            <h3 className="font-bold text-gray-800">{character.name}</h3>
+                            <p className="text-xs text-gray-600 line-clamp-1">{character.description}</p>
+                        </div>
+                    </div>
+
+                    <div className='flex'>
+                        {/* 历史记录按钮 */}
+                        {/* 音量按钮 - 粘土风格 */}
+                        <Tooltip title={autoPlay ? "自动播放开启" : "自动播放关闭"}>
+                            <button
+                                onClick={() => setAutoPlay(!autoPlay)}
+                                className={`w-12 h-12 rounded-full flex items-center justify-center mr-2
+                                            transition-all duration-300 transform active:scale-95
+                                            shadow-[0_4px_12px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                                            ${autoPlay
+                                    ? 'bg-gradient-to-br from-blue-400 to-blue-500 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]'
+                                    : 'bg-gradient-to-br from-gray-200 to-gray-300 text-gray-600'
+                                }
+                                            hover:scale-105 hover:-translate-y-0.5`}
+                            >
+                                {autoPlay ? <Volume2 size={18}/> : <VolumeX size={18}/>}
+                            </button>
+                        </Tooltip>
+
+                        {/* 刷新按钮 - 粘土风格 */}
+                        {messages.length > 0 && (<Tooltip title="重新开始">
+                            <button
+                                onClick={() => {
+                                    setMessages([]);
+                                    setCurrentAIResponse('');
+                                }}
+                                className="w-12 h-12 rounded-full flex items-center justify-center mr-2
+                          bg-gradient-to-br from-orange-300 to-orange-400 text-white
+                          shadow-[0_4px_12px_rgba(251,146,60,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                          transition-all duration-300 transform active:scale-95
+                          hover:scale-105 hover:-translate-y-0.5"
+                            >
+                                <RotateCw size={18}/>
+                            </button>
+                        </Tooltip>)}
+
+                        {messages.length > 0 && (<Tooltip title="历史记录">
+                            <button
+                                onClick={() => setShowHistory(true)}
+                                className="w-12 h-12 rounded-full flex items-center justify-center
+                            bg-gradient-to-br from-purple-300 to-purple-400 text-white
+                            shadow-[0_4px_12px_rgba(147,51,234,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                            transition-all duration-300 transform active:scale-95
+                            hover:scale-105 hover:-translate-y-0.5"
+                            >
+                                <History size={18}/>
+                            </button>
+                        </Tooltip>)}
+
+                    </div>
+                </div>
+            </div>
+
+            {/* 聊天框 */}
             {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center voice-root-min-h-screen relative px-4">
+                <div className="flex flex-col items-center justify-center voice-start-min-h-screen relative px-4">
                     <div className="relative">
                         {/* 脉冲动画背景 - 粘土风格 */}
                         {isRecording && (
@@ -410,28 +525,8 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                         {/* 录音按钮 - 粘土立体效果 */}
                         <button
                             onClick={toggleRecording}
-                            disabled={isRecognizing || (isProcessingAI && !isStreaming)}
-                            className={`
-              relative w-32 h-32 md:w-40 md:h-40 rounded-full 
-              flex flex-col items-center justify-center gap-2
-              transition-all duration-300 transform active:scale-95
-              before:content-[''] before:absolute before:inset-0 before:rounded-full
-              before:bg-gradient-to-t before:from-black/10 before:to-transparent before:opacity-50
-              after:content-[''] after:absolute after:inset-[2px] after:rounded-full
-              after:bg-gradient-to-t after:from-white/20 after:to-transparent
-              ${isRecording
-                                ? `bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 
-                   shadow-[0_8px_24px_rgba(59,130,246,0.4),inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.2)] 
-                   scale-110 animate-pulse`
-                                : isRecognizing || (isProcessingAI && !isStreaming)
-                                    ? `bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 cursor-not-allowed
-                   shadow-[0_4px_16px_rgba(107,114,128,0.3),inset_0_2px_4px_rgba(255,255,255,0.4)]`
-                                    : `bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 
-                   shadow-[0_6px_20px_rgba(59,130,246,0.4),inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.1)] 
-                   hover:shadow-[0_8px_24px_rgba(59,130,246,0.5),inset_0_2px_4px_rgba(255,255,255,0.4)] 
-                   hover:scale-105 hover:-translate-y-1`
-                            }
-            `}
+                            disabled={isRecognizing || isProcessingAI || isStreaming}
+                            className={getRecordingButtonClass()}
                         >
                             <div className="relative z-10 text-center">
                                 {isRecognizing ? (
@@ -458,12 +553,12 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                          shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
                          border border-white/30">
                         <p className="text-gray-600 text-center text-sm md:text-base font-medium animate-fadeIn">
-                            {(isRecognizing) || (isProcessingAI && !isStreaming) ? (recognizedText ? recognizedText : '正在倾听...') : ('点击按钮开始对话，我会立即回复你 ✨')}
+                            {(isRecognizing) || (isProcessingAI && !isStreaming) ? (recognizedText ? recognizedText : '正在倾听...') : (isProcessingAI || isStreaming ? 'AI正在思考中...' : '点击按钮开始对话，我会立即回复你 ✨')}
                         </p>
                     </div>
                 </div>
             ) : (
-                <div className="space-y-4 p-4 voice-chat-min-h-screen">
+                <div className="space-y-4 p-4 voice-chat-min-h-screen overflow-y-scroll clay-scroll">
                     {messages.map((msg) => (
                         <div
                             key={msg.id}
@@ -478,16 +573,16 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                                 : 'bg-gradient-to-br from-purple-100 to-purple-200'}`}>
                                 {msg.role === 'user'
                                     ? <User size={14} className="text-blue-600"/>
-                                    : <Bot size={14} className="text-purple-600"/>
+                                    : <div className="text-purple-600">{character.avatar}</div>
                                 }
                             </div>
                             <div className={`
                   flex-1 px-4 py-3 rounded-2xl text-sm font-medium
                   shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
-                  transition-all duration-200 hover:scale-[1.02] bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800
-                  ${msg.role === 'user'
-                                ? 'rounded-br-lg'
-                                : 'rounded-tl-lg cursor-pointer'
+                  transition-all duration-200 hover:scale-[1.02]
+                  ${msg.role === 'assistant'
+                                ? 'rounded-tl-lg cursor-pointer bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800'
+                                : 'rounded-br-lg bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800'
                             }
                 `}>
                                 <div className="flex items-start gap-1">
@@ -501,9 +596,9 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                                         <p>{msg.content || (msg.isStreaming ? '生成中...' : '')}</p>
                                     )}
 
-                                    {msg.isStreaming && (
-                                        <span className="inline-block w-2 h-4 bg-gray-600 animate-pulse rounded-full"/>
-                                    )}
+                                    {/*{msg.isStreaming && (*/}
+                                    {/*    <span className="inline-block w-2 h-4 bg-gray-600 animate-pulse rounded-full"/>*/}
+                                    {/*)}*/}
                                 </div>
                                 <p className="text-xs text-gray-500 mt-2 font-normal">
                                     {new Date(msg.timestamp).toLocaleTimeString()}
@@ -512,64 +607,51 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                             <div className="w-8 h-8"></div>
                         </div>
                     ))}
+                    {(isRecognizing || (isProcessingAI && !isStreaming)) && (
+                        <div className="flex items-start gap-3 flex-row-reverse">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                                            shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)] 
+                                            bg-gradient-to-br from-blue-100 to-blue-200">
+                                <User size={14} className="text-blue-600" />
+                            </div>
+                            <div className="flex-1 px-4 py-3 rounded-2xl text-sm font-medium
+                                          shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                                          transition-all duration-200 hover:scale-[1.02]
+                                          rounded-br-lg bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800">
+                                <div className="flex items-start gap-1">
+                                    {recognizedText ? recognizedText : '正在倾听...'}
+                                </div>
+                            </div>
+                            <div className="w-8 h-8"></div>
+                        </div>
+                    )}
+
                     <div ref={messagesEndRef}/>
                 </div>
             )}
 
-            {/* 工具栏 - 粘土风格 */}
-            <div className="absolute bottom-0 mx-auto px-4 py-4 w-full">
-                <div className="max-w-md mx-auto bg-white/70 backdrop-blur-md rounded-2xl p-3
-                       shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
-                       border border-white/30">
-                    <div className="flex items-center justify-center gap-6">
-
-                        {/* 音量按钮 - 粘土风格 */}
-                        <Tooltip title={autoPlay ? "自动播放开启" : "自动播放关闭"}>
-                            <button
-                                onClick={() => setAutoPlay(!autoPlay)}
-                                className={`
-                  w-12 h-12 rounded-full flex items-center justify-center
-                  transition-all duration-300 transform active:scale-95
-                  shadow-[0_4px_12px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.5)]
-                  ${autoPlay
-                                    ? 'bg-gradient-to-br from-blue-400 to-blue-500 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]'
-                                    : 'bg-gradient-to-br from-gray-200 to-gray-300 text-gray-600'
-                                }
-                  hover:scale-105 hover:-translate-y-0.5
-                `}
-                            >
-                                {autoPlay ? <Volume2 size={18}/> : <VolumeX size={18}/>}
-                            </button>
-                        </Tooltip>
-
-                        {/* 刷新按钮 - 粘土风格 */}
-                        {messages.length > 0 && (<Tooltip title="重新开始">
-                            <button
-                                onClick={() => {
-                                    setMessages([]);
-                                    setCurrentAIResponse('');
-                                }}
-                                className="w-12 h-12 rounded-full flex items-center justify-center
-                          bg-gradient-to-br from-orange-300 to-orange-400 text-white
-                          shadow-[0_4px_12px_rgba(251,146,60,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
-                          transition-all duration-300 transform active:scale-95
-                          hover:scale-105 hover:-translate-y-0.5"
-                            >
-                                <RotateCw size={18}/>
-                            </button>
-                        </Tooltip>)}
-
-
-                        {/* 历史记录按钮 - 粘土风格 */}
-                        {messages.length > 0 && (<Tooltip title="点击说话">
+            {/* 工具栏 - 聊天框 */}
+            <>{messages.length > 0 && (<div className="absolute bottom-0 mx-auto w-full bg-orange-100/75">
+                <div className="mx-auto backdrop-blur-md p-3
+                       shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]">
+                    {/* 文本输入区域 */}
+                    <div className="flex items-center gap-2">
+                        <Tooltip title="点击说话">
                             <div className="relative">
                                 <button
                                     onClick={toggleRecording}
-                                    className="w-12 h-12 rounded-full flex items-center justify-center
-                            bg-gradient-to-br from-purple-300 to-purple-400 text-white
-                            shadow-[0_4px_12px_rgba(147,51,234,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
-                            transition-all duration-300 transform active:scale-95
-                            hover:scale-105 hover:-translate-y-0.5"
+                                    disabled={isProcessingAI || isStreaming}
+                                    className={`
+                                        w-12 h-12 rounded-full flex items-center justify-center text-white
+                                        transition-all duration-300 transform active:scale-95
+                                        shadow-[0_4px_12px_rgba(147,51,234,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                                        hover:scale-105 hover:-translate-y-0.5
+                                        disabled:opacity-50 disabled:cursor-not-allowed
+                                        ${isProcessingAI || isStreaming
+                                        ? 'bg-gradient-to-br from-gray-300 to-gray-400'
+                                        : 'bg-gradient-to-br from-purple-300 to-purple-400'
+                                    }
+                                    `}
                                 >
                                     {isRecognizing ? (
                                         <div className="text-white">
@@ -586,47 +668,157 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                                     )}
                                 </button>
                             </div>
-                        </Tooltip>)}
+                        </Tooltip>
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendMessage();
+                                    }
+                                }}
+                                placeholder="输入消息..."
+                                disabled={isProcessingAI || isStreaming || isRecognizing}
+                                className="w-full px-4 py-3 rounded-2xl text-sm font-medium
+                                    bg-white/70 backdrop-blur-sm text-gray-800
+                                    shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                                    border border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-300
+                                    disabled:opacity-50 disabled:cursor-not-allowed"
+                            />
+                        </div>
+                        <Tooltip title="发送消息">
+                            <button
+                                onClick={handleSendMessage}
+                                disabled={isProcessingAI || isStreaming || isRecognizing || !inputValue.trim()}
+                                className={`
+                                    w-12 h-12 rounded-full flex items-center justify-center text-white
+                                    transition-all duration-300 transform active:scale-95
+                                    shadow-[0_4px_12px_rgba(147,51,234,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                                    hover:scale-105 hover:-translate-y-0.5
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    ${isProcessingAI || isStreaming || isRecognizing || !inputValue.trim()
+                                        ? 'bg-gradient-to-br from-gray-300 to-gray-400'
+                                        : 'bg-gradient-to-br from-purple-300 to-purple-400'
+                                    }
+                                `}
+                            >
+                                <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    className="w-5 h-5"
+                                >
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </Tooltip>
                     </div>
                 </div>
-            </div>
+            </div>)}</>
 
-            {/* 历史记录抽屉 - 粘土风格 */}
-            {/*<Drawer*/}
-            {/*    title={*/}
-            {/*        <div className="flex items-center justify-between">*/}
-            {/*            <div className="flex items-center gap-2">*/}
-            {/*                <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200*/}
-            {/*                 rounded-full flex items-center justify-center*/}
-            {/*                 shadow-[0_2px_8px_rgba(147,51,234,0.2)]">*/}
-            {/*                    <MessageSquare size={16} className="text-purple-600"/>*/}
-            {/*                </div>*/}
-            {/*                <span className="font-bold text-gray-800">对话历史</span>*/}
-            {/*            </div>*/}
-            {/*            <button*/}
-            {/*                onClick={() => setMessages([])}*/}
-            {/*                className="px-3 py-1 bg-gradient-to-br from-red-400 to-red-500 text-white text-sm*/}
-            {/*            rounded-full shadow-[0_2px_8px_rgba(239,68,68,0.3)]*/}
-            {/*            hover:scale-105 transition-all duration-200"*/}
-            {/*            >*/}
-            {/*                清空*/}
-            {/*            </button>*/}
-            {/*        </div>*/}
-            {/*    }*/}
-            {/*    placement="right"*/}
-            {/*    onClose={() => setShowHistory(false)}*/}
-            {/*    open={showHistory}*/}
-            {/*    width={400}*/}
-            {/*    className="clay-drawer"*/}
-            {/*    styles={{*/}
-            {/*        body: {*/}
-            {/*            background: 'linear-gradient(to bottom right, #fef7ed, #fdf2f8)',*/}
-            {/*            padding: '16px'*/}
-            {/*        }*/}
-            {/*    }}*/}
-            {/*>*/}
+            {showHistory && (
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col
+                                 shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                                 border border-white/30">
+                        <div className="flex items-center justify-between p-4 border-b bg-white/70 backdrop-blur-sm
+                                     shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                                     border-b border-white/30 rounded-t-2xl">
+                            <h3 className="text-lg font-bold text-gray-800">对话历史</h3>
+                            <button
+                                onClick={() => setShowHistory(false)}
+                                className="w-8 h-8 rounded-full flex items-center justify-center
+                                         bg-gradient-to-br from-gray-200 to-gray-300 text-gray-600
+                                         shadow-[0_4px_12px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                                         transition-all duration-300 transform active:scale-95
+                                         hover:scale-105 hover:-translate-y-0.5"
+                            >
+                                <X size={18}/>
+                            </button>
+                        </div>
 
-            {/*</Drawer>*/}
+                        <div className="flex-1 overflow-y-auto p-4 bg-white/50 backdrop-blur-sm">
+                            {messages.length === 0 ? (
+                                <p className="text-gray-500 text-center py-8">暂无对话历史</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {messages.map((msg) => (
+                                        <div
+                                            key={msg.id}
+                                            className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}
+                                        >
+                                            {msg.role === 'assistant' && (
+                                                <div
+                                                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                                                             shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)]"
+                                                    style={{background: character.bgGradient}}
+                                                >
+                                                    <span className="font-bold text-white text-xs drop-shadow-md">
+                                                        {character.name.charAt(0)}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div
+                                                className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                                                    msg.role === 'user'
+                                                        ? 'bg-gradient-to-br from-blue-400 to-blue-500 text-white rounded-br-none shadow-[0_4px_12px_rgba(59,130,246,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]'
+                                                        : 'bg-gradient-to-br from-pink-50 to-pink-100 text-gray-800 rounded-bl-none shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)] border border-white/30'
+                                                }`}
+                                            >
+                                                {msg.role === 'assistant' ? (
+                                                    <div className="prose prose-sm max-w-none">
+                                                        <ReactMarkdown>
+                                                            {msg.content}
+                                                        </ReactMarkdown>
+                                                    </div>
+                                                ) : (
+                                                    <p>{msg.content}</p>
+                                                )}
+                                                <p className="text-xs mt-1 opacity-70">
+                                                    {new Date(msg.timestamp).toLocaleTimeString()}
+                                                </p>
+                                            </div>
+                                            {msg.role === 'user' && (
+                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center flex-shrink-0
+                                                            shadow-[0_4px_12px_rgba(59,130,246,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]">
+                                                    <User size={14} className="text-white"/>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {messages.length > 0 && (
+                            <div className="p-4 border-t bg-white/70 backdrop-blur-sm
+                                         shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                                         border-t border-white/30">
+                                <button
+                                    onClick={() => {
+                                        setMessages([]);
+                                        setShowHistory(false);
+                                    }}
+                                    className="w-full py-2 bg-gradient-to-br from-red-400 to-red-500 text-white rounded-xl font-medium
+                                             shadow-[0_4px_12px_rgba(239,68,68,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                                             transition-all duration-300 transform active:scale-95
+                                             hover:scale-[1.02] hover:-translate-y-0.5"
+                                >
+                                    清空历史记录
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -2,15 +2,31 @@
 "use client";
 
 import {useRouter} from 'next/navigation';
-import {Row, Col, Typography} from 'antd';
+import {Row, Col, Typography, Spin} from 'antd';
 import {useChatStore} from '@/stores/chatStore';
 import {motion} from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 
 const {Title, Paragraph} = Typography;
 
 export default function CharactersPage() {
     const router = useRouter();
     const {characters, currentCharacter, setCurrentCharacter, createSession} = useChatStore();
+    const { user, isLoading } = useAuth();
+
+    // 检查用户是否已登录
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Spin size="large" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        router.push('/login');
+        return null;
+    }
 
     const handleSelectCharacter = (character: typeof characters[0]) => {
         setCurrentCharacter(character);
