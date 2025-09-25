@@ -28,9 +28,35 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 加载环境变量
-if [ -f "env-vars.sh" ]; then
-    print_info "加载环境变量配置..."
+# 处理命令行参数 - 环境profile
+PROFILE_ARG=""
+for arg in "$@"; do
+    case $arg in
+        --profile=*)
+            PROFILE_ARG="${arg#*=}"
+            export SPRING_PROFILES_ACTIVE="$PROFILE_ARG"
+            print_info "设置Spring Profile为: $PROFILE_ARG"
+            shift
+            ;;
+        prod)
+            export SPRING_PROFILES_ACTIVE="ai,prod"
+            print_info "设置Spring Profile为: ai,prod (生产环境)"
+            shift
+            ;;
+        dev)
+            export SPRING_PROFILES_ACTIVE="ai"
+            print_info "设置Spring Profile为: ai (开发模式)"
+            shift
+            ;;
+    esac
+done
+
+# 加载环境变量 - 根据profile选择配置文件
+if [[ "$SPRING_PROFILES_ACTIVE" == "ai" ]] && [ -f "env-vars-dev.sh" ]; then
+    print_info "加载开发环境配置..."
+    source env-vars-dev.sh
+elif [[ "$SPRING_PROFILES_ACTIVE" == *"prod"* ]] && [ -f "env-vars.sh" ]; then
+    print_info "加载生产环境配置..."
     source env-vars.sh
 elif [ -f ".env" ]; then
     print_info "加载 .env 文件..."
@@ -38,6 +64,10 @@ elif [ -f ".env" ]; then
 else
     print_warning "未找到环境变量配置文件，使用默认配置"
 fi
+
+# 如果没有通过参数设置profile，则使用环境变量默认值
+export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-ai,prod}"
+print_info "当前Spring Profile: $SPRING_PROFILES_ACTIVE"
 
 # 项目配置（可以被环境变量覆盖）
 PROJECT_NAME="${PROJECT_NAME:-tripdog-backend}"
@@ -193,20 +223,51 @@ main() {
     print_info "部署完成！"
 }
 
-# 如果传入参数为 logs，则显示日志
-if [ "$1" = "logs" ]; then
-    docker-compose logs -f
-elif [ "$1" = "stop" ]; then
-    print_info "停止所有服务..."
-    docker-compose down
-    print_info "服务已停止"
-elif [ "$1" = "restart" ]; then
-    print_info "重启所有服务..."
-    docker-compose restart
-    print_info "服务已重启"
-elif [ "$1" = "status" ]; then
-    show_status
-else
-    # 执行主函数
-    main
-fi
+# 处理命令参数
+case "${1:-deploy}" in
+    logs)
+        docker-compose logs -f
+        ;;
+    stop)
+        print_info "停止所有服务..."
+        docker-compose down
+        print_info "服务已停止"
+        ;;
+    restart)
+        print_info "重启所有服务..."
+        docker-compose restart
+        print_info "服务已重启"
+        ;;
+    status)
+        show_status
+        ;;
+    help|--help|-h)
+        echo "TripDog Backend 部署脚本使用说明："
+        echo ""
+        echo "基本命令："
+        echo "  ./deploy.sh              - 执行完整部署 (默认prod环境)"
+        echo "  ./deploy.sh prod         - 执行生产环境部署"
+        echo "  ./deploy.sh dev          - 执行开发环境部署 (ai profile)"
+        echo "  ./deploy.sh --profile=ai - 指定特定的Spring Profile"
+        echo ""
+        echo "管理命令："
+        echo "  ./deploy.sh logs         - 查看实时日志"
+        echo "  ./deploy.sh stop         - 停止所有服务"
+        echo "  ./deploy.sh restart      - 重启所有服务"
+        echo "  ./deploy.sh status       - 查看服务状态"
+        echo ""
+        echo "环境变量："
+        echo "  配置文件: env-vars.sh 或 .env"
+        echo "  当前Profile: ${SPRING_PROFILES_ACTIVE:-ai,prod}"
+        echo ""
+        ;;
+    deploy|prod|dev|--profile=*)
+        # 执行主函数
+        main
+        ;;
+    *)
+        print_warning "未知参数: $1"
+        print_info "使用 './deploy.sh help' 查看帮助信息"
+        exit 1
+        ;;
+esac

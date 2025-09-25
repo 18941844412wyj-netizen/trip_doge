@@ -263,7 +263,32 @@ docker-compose exec app tail -f /app/logs/tripdog-backend.log
 
 ### 常见问题
 
-#### 1. 端口占用
+#### 1. Docker镜像拉取失败
+```bash
+# 运行网络诊断脚本
+chmod +x fix-docker-network.sh
+./fix-docker-network.sh
+
+# 或者手动配置Docker镜像加速器
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com",
+    "https://mirror.baidubce.com"
+  ]
+}
+EOF
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+
+# 使用备用Dockerfile
+cp Dockerfile.backup Dockerfile
+./deploy.sh
+```
+
+#### 2. 端口占用
 ```bash
 # 检查端口占用
 netstat -tuln | grep :7979

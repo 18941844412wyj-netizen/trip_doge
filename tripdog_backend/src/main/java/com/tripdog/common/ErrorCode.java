@@ -32,6 +32,7 @@ public enum ErrorCode {
     // 角色相关错误码 (10200-10299)
     ROLE_NOT_FOUND(10200, "角色不存在"),
     ROLE_CREATE_FAILED(10201, "角色创建失败"),
+    NOT_FOUND_ERROR(10202, "角色不存在"),
 
     // 对话相关错误码 (10300-10399)
     CONVERSATION_NOT_FOUND(10300, "对话不存在"),
