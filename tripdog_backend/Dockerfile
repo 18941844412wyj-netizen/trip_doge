@@ -1,6 +1,6 @@
 # 使用多阶段构建优化镜像大小
 # 第一阶段：构建阶段
-FROM maven:3.9.9-amazoncorretto-21 AS builder
+FROM maven:3.9-amazoncorretto-21 AS builder
 
 # 设置工作目录
 WORKDIR /app
