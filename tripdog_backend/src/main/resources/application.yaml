@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: tripdog-backend
+  profiles:
+    active: ai
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/trip_dog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
+    username: root
+    password: wangweiwei123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+
+  # 邮件配置
+  mail:
+    host: smtp.qq.com  # QQ邮箱SMTP服务器
+    port: 465  # QQ邮箱SSL端口
+    username: ${EMAIL}  # 发送邮件的邮箱，可以通过环境变量覆盖
+    password: ${EMAIL_AUTH}  # 邮箱授权码，请替换为实际授权码
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true  # 启用SSL
+          socketFactory:
+            port: 465
+            class: javax.net.ssl.SSLSocketFactory
+            fallback: false
+
+server:
+  port: 7979
+  servlet:
+    context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+logging:
+  level:
+    com.tripdog: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  type-aliases-package: com.tripdog.model
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
