@@ -23,19 +23,7 @@ build/
 .metadata/
 .recommenders/
 
-# Eclipse
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-tmp/
-*.tmp
-*.bak
-local.properties
+
 
 # IntelliJ IDEA
 *.iws
@@ -64,21 +52,6 @@ nbactions.xml
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
-
-# OS Files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
-
-# Windows
-*.stackdump
-[Dd]esktop.ini
-$RECYCLE.BIN/
 
 # Linux
 *~
@@ -163,23 +136,9 @@ h2/
 docs/build/
 site/
 
-# Application specific
-application-local.yml
-application-local.yaml
-application-local.properties
-application-dev.properties
-application-prod.properties
-application-staging.properties
-
-# API Keys and Config (examples - adjust as needed)
-api-keys.yml
-config/local/
-local-config/
 
 # Docker
 .dockerignore
 docker-compose.override.yml
 .docker/
 
-# Kubernetes
-*.kubeconfig

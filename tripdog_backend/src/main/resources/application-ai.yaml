@@ -1,0 +1,18 @@
+langchain4j:
+  community:
+    dashscope:
+      # LLM
+      chat-model:
+        api-key: ${DASHSCOPE_API_KEY}
+        model-name: qwen-plus
+        temperature: 0.7
+      # Streaming LLM
+      streaming-chat-model:
+        api-key: ${DASHSCOPE_API_KEY}
+        model-name: qwen-plus
+        temperature: 0.7
+      # Embedding model
+      embedding-model:
+        api-key: ${DASHSCOPE_API_KEY}
+        model-name: text-embedding-v3
+        dimensions: 1024
