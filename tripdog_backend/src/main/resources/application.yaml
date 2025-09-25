@@ -2,21 +2,23 @@ spring:
   application:
     name: tripdog-backend
   profiles:
-    active: ai
+    active: ${SPRING_PROFILES_ACTIVE:ai}
+  session:
+    timeout: 30m
 
   datasource:
     url: jdbc:mysql://localhost:3306/trip_dog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
-    username: root
+    username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 
   # 邮件配置
   mail:
-    host: smtp.qq.com  # QQ邮箱SMTP服务器
-    port: 465  # QQ邮箱SSL端口
-    username: ${EMAIL}  # 发送邮件的邮箱，可以通过环境变量覆盖
-    password: ${EMAIL_AUTH}  # 邮箱授权码，请替换为实际授权码
+    host: ${MAIL_HOST:smtp.qq.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     default-encoding: UTF-8
     properties:
       mail:
@@ -30,7 +32,7 @@ spring:
             fallback: false
 
 server:
-  port: 7979
+  port: ${SERVER_PORT:7979}
   servlet:
     context-path: /api
     encoding:

@@ -16,7 +16,7 @@ export MAIL_PASSWORD=slxmzmxmmwyvcejf
 
 # 应用配置
 export SERVER_PORT=7979
-export SPRING_PROFILES_ACTIVE=prod
+export SPRING_PROFILES_ACTIVE=ai,prod
 
 # 端口映射配置
 export MYSQL_PORT=3306
@@ -28,7 +28,6 @@ export JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport -XX:M
 
 # 打印配置信息
 echo "✅ 环境变量已设置完成"
-echo "🐕 TripDog 部署配置:"
+echo "🐕 TripDog 生产环境配置:"
 echo "   - 数据库: ${MYSQL_DATABASE} (端口: ${MYSQL_PORT})"
 echo "   - 应用端口: ${APP_PORT}"
-echo "   - 邮件服务: ${MAIL_HOST}:${MAIL_PORT}"
