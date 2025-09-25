@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: tripdog-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-trip_dog}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - tripdog-network
+
+  # Spring Boot应用
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tripdog-backend
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      # 数据库配置
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-trip_dog}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME:-root}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-123123}
+
+      # 应用配置
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SERVER_PORT: ${SERVER_PORT:-7979}
+
+      # 邮件配置
+      MAIL_HOST: ${MAIL_HOST:-smtp.qq.com}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-your-email@qq.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-your-app-password}
+
+      # JVM参数
+      JAVA_OPTS: ${JAVA_OPTS:-"-Xms512m -Xmx1024m -XX:+UseG1GC -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"}
+
+      # 时区设置
+      TZ: Asia/Shanghai
+    ports:
+      - "${APP_PORT:-7979}:${SERVER_PORT:-7979}"
+    volumes:
+      - app_logs:/app/logs
+    networks:
+      - tripdog-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SERVER_PORT:-7979}/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  mysql_data:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  tripdog-network:
+    driver: bridge
