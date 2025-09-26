@@ -39,7 +39,7 @@ import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.load
 @RestController
 @RequestMapping("/doc")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowCredentials = "true")
+@CrossOrigin(allowCredentials = "true")
 public class DocController {
     final EmbeddingStoreIngestor ingestor;
     final MinioClient minioClient;
