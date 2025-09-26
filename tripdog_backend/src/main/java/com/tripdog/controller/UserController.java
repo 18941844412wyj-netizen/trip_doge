@@ -23,7 +23,6 @@ import jakarta.servlet.http.HttpSession;
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
-@CrossOrigin(allowCredentials = "true")
 public class UserController {
 
     private final UserService userService;

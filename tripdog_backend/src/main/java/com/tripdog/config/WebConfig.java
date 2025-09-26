@@ -28,29 +28,4 @@ public class WebConfig implements WebMvcConfigurer {
                 );
     }
 
-    /**
-     * 跨域配置
-     * 注意: 由于使用了专门的 CorsConfig，这里的配置可能会被覆盖
-     * 建议主要使用 CorsConfig 进行 CORS 配置
-     */
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // 允许所有路径
-                .allowedOrigins(
-                        "http://localhost:3000",    // React 默认端口
-                        "http://localhost:8080",    // Vue 默认端口
-                        "http://localhost:5173",    // Vite 默认端口
-                        "http://localhost:4200",    // Angular 默认端口
-                        "http://127.0.0.1:3000",
-                        "http://127.0.0.1:8080",
-                        "http://127.0.0.1:5173",
-                        "http://127.0.0.1:4200",
-                        "https://trip-doge-frontend.zeabur.app"  // 生产环境
-                )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // 允许的HTTP方法
-                .allowedHeaders("*") // 允许所有请求头
-                .allowCredentials(true) // 允许携带凭证（如cookies、session等）
-                .maxAge(3600); // 预检请求的缓存时间（秒）
-    }
-
 }

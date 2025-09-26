@@ -23,7 +23,6 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/roles")
-@CrossOrigin(allowCredentials = "true")
 @RequiredArgsConstructor
 public class RoleController {
 
