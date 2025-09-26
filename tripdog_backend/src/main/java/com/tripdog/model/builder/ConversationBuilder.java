@@ -80,4 +80,30 @@ public class ConversationBuilder {
         chatHistory.setCreatedAt(LocalDateTime.now());
         return chatHistory;
     }
+
+    /**
+     * 创建带有检索增强内容的用户消息
+     */
+    public static ChatHistoryDO buildEnhancedUserMessage(String conversationId, String originalContent, String enhancedContent) {
+        ChatHistoryDO chatHistory = new ChatHistoryDO();
+        chatHistory.setConversationId(conversationId);
+        chatHistory.setRole(Constants.USER);
+        chatHistory.setContent(originalContent);
+        chatHistory.setEnhancedContent(enhancedContent);
+        chatHistory.setCreatedAt(LocalDateTime.now());
+        return chatHistory;
+    }
+
+    /**
+     * 创建带有检索增强内容的助手消息
+     */
+    public static ChatHistoryDO buildEnhancedAssistantMessage(String conversationId, String originalContent, String enhancedContent) {
+        ChatHistoryDO chatHistory = new ChatHistoryDO();
+        chatHistory.setConversationId(conversationId);
+        chatHistory.setRole(Constants.ASSISTANT);
+        chatHistory.setContent(originalContent);
+        chatHistory.setEnhancedContent(enhancedContent);
+        chatHistory.setCreatedAt(LocalDateTime.now());
+        return chatHistory;
+    }
 }

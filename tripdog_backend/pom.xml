@@ -26,6 +26,7 @@
         <langchain4j.version>1.0.0-beta3</langchain4j.version>
         <mybatis.version>3.5.17</mybatis.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <minio.version>8.5.7</minio.version>
     </properties>
 
     <dependencies>
@@ -69,6 +70,18 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-dashscope-spring-boot-starter</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-pgvector</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-document-parser-apache-tika</artifactId>
             <version>${langchain4j.version}</version>
         </dependency>
 
@@ -130,6 +143,18 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- MinIO Client -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>${minio.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

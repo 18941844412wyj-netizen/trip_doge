@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.tripdog.ai.AssistantService;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.RoleDO;
@@ -31,7 +32,7 @@ public class ChatServiceImpl implements ChatService {
     private final ConversationServiceImpl conversationServiceImpl;
     private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;
-    private final ChatAssistant assistant;
+    private final AssistantService assistantService;
 
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO ChatReqDTO) {
@@ -40,7 +41,6 @@ public class ChatServiceImpl implements ChatService {
         try {
             // 1. 获取或创建会话
             ConversationDO conversation = conversationServiceImpl.getOrCreateConversation(userId, roleId);
-
 
             // 2. 获取角色信息
             RoleDO role = roleMapper.selectById(roleId);
@@ -56,8 +56,8 @@ public class ChatServiceImpl implements ChatService {
             StringBuilder responseBuilder = new StringBuilder();
             // 使用角色专用的聊天助手，传入角色的系统提示词
 
+            ChatAssistant assistant = assistantService.getAssistant(roleId, userId);
             String userInput = ChatReqDTO.getMessage();
-
             TokenStream stream = assistant.chat(
                 conversation.getConversationId(),
                 userInput

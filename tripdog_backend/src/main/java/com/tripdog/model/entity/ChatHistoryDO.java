@@ -32,6 +32,11 @@ public class ChatHistoryDO {
     private String content;
 
     /**
+     * 检索增强后内容
+     */
+    private String enhancedContent;
+
+    /**
      * 消息创建时间
      */
     private LocalDateTime createdAt;
