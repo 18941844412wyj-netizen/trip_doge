@@ -24,6 +24,7 @@ import static com.tripdog.common.Constants.USER_SESSION_KEY;
 @RestController
 @RequestMapping("/chat")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*", allowCredentials = "true")
 public class ChatController {
 
     private final ChatService chatService;
