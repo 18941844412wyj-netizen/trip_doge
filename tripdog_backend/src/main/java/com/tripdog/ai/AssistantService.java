@@ -1,11 +1,14 @@
 package com.tripdog.ai;
 
-import org.springframework.context.annotation.Bean;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.context.annotation.Configuration;
 
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.ai.embedding.RetrieverFactory;
 
+import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -26,9 +29,8 @@ import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 @RequiredArgsConstructor
 public class AssistantService {
     final StreamingChatLanguageModel chatLanguageModel;
-    final ChatMemoryStore chatMemoryStore;
     final RetrieverFactory retrieverFactory;
-
+    final CustomerChatMemoryProvider chatMemoryProvider;
 
     public ChatAssistant getAssistant(Long roleId, Long userId) {
         RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
@@ -41,11 +43,7 @@ public class AssistantService {
         return AiServices.builder(ChatAssistant.class)
             .streamingChatLanguageModel(chatLanguageModel)
             .retrievalAugmentor(retrievalAugmentor)
-            .chatMemoryProvider(id -> MessageWindowChatMemory.builder()
-                .id(id)
-                .maxMessages(20)
-                .chatMemoryStore(chatMemoryStore)
-                .build())
+            .chatMemoryProvider(chatMemoryProvider)
             .build();
     }
 

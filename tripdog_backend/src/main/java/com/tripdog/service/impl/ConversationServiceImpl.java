@@ -1,5 +1,6 @@
 package com.tripdog.service.impl;
 
+import com.tripdog.ai.CustomerChatMemoryProvider;
 import com.tripdog.common.Constants;
 import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.mapper.ChatHistoryMapper;
@@ -11,12 +12,15 @@ import com.tripdog.model.builder.ConversationBuilder;
 import com.tripdog.service.ConversationService;
 import com.tripdog.service.RoleService;
 
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.memory.ChatMemory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 会话服务类
@@ -25,11 +29,12 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ConversationServiceImpl implements ConversationService {
-
     private final ConversationMapper conversationMapper;
     private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;
     private final RoleService roleService;
+    private final CustomerChatMemoryProvider chatMemoryProvider;
+
 
     /**
      * 获取或创建用户与角色的会话
@@ -86,14 +91,15 @@ public class ConversationServiceImpl implements ConversationService {
 
     /**
      * 重置会话上下文，开启新话题
-     * 不删除历史记录，而是插入重置标记
      */
     @Override
     @Transactional
     public void resetConversationContext(String conversationId) {
-        // 插入上下文重置标记
-        ChatHistoryDO resetMessage = ConversationBuilder.buildResetMessage(conversationId);
-        chatHistoryMapper.insert(resetMessage);
+        Map<String, ChatMemory> chatMemoryMap = chatMemoryProvider.getChatMemoryMap();
+        ChatMemory chatMemory = chatMemoryMap.get(conversationId);
+        ChatMessage systemMessage = chatMemory.messages().removeFirst();
+        chatMemory.clear();
+        chatMemory.add(systemMessage);
 
         // 更新会话信息 - 根据conversationId查找会话
         ConversationDO existingConversation = conversationMapper.selectByConversationId(conversationId);
