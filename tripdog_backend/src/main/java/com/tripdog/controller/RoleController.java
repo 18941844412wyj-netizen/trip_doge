@@ -57,13 +57,13 @@ public class RoleController {
      * @param roleId 角色ID
      * @return 角色详情信息
      */
-    @GetMapping("/{roleId}/detail")
-    public Result<RoleDetailVO> getRoleDetail(@PathVariable Long roleId) {
-        RoleDetailVO roleDetail = roleService.getRoleDetailById(roleId);
-        if (roleDetail == null) {
-            return Result.error(ErrorCode.NOT_FOUND_ERROR, "角色不存在");
-        }
-        return Result.success(roleDetail);
-    }
+    // @GetMapping("/{roleId}/detail")
+    // public Result<RoleDetailVO> getRoleDetail(@PathVariable Long roleId) {
+    //     RoleDetailVO roleDetail = roleService.getRoleDetailById(roleId);
+    //     if (roleDetail == null) {
+    //         return Result.error(ErrorCode.NOT_FOUND_ERROR, "角色不存在");
+    //     }
+    //     return Result.success(roleDetail);
+    // }
 
 }

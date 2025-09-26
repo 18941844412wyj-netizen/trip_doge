@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.tripdog.ai.AssistantService;
+import com.tripdog.ai.CustomerChatMemoryProvider;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.RoleDO;
@@ -27,12 +28,12 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class ChatServiceImpl implements ChatService {
-
     private final StreamingChatLanguageModel chatLanguageModel;
     private final ConversationServiceImpl conversationServiceImpl;
     private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;
     private final AssistantService assistantService;
+
 
     @Override
     public SseEmitter chat(Long roleId, Long userId, ChatReqDTO ChatReqDTO) {

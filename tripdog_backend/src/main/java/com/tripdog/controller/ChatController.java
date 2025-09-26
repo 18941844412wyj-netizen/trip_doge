@@ -47,10 +47,11 @@ public class ChatController {
     /**
      * 重置会话上下文
      * @param roleId 角色ID
-     * @param userId 用户ID
      */
     @PostMapping("/{roleId}/reset")
-    public Result<Void> resetContext(@PathVariable Long roleId, @RequestParam Long userId) {
+    public Result<Void> resetContext(@PathVariable Long roleId, HttpSession session) {
+        UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+        Long userId = userInfoVO.getId();
         ConversationDO conversation = conversationServiceImpl.findConversationByUserAndRole(userId, roleId);
         if (conversation == null) {
             return Result.error(ErrorCode.CONVERSATION_NOT_FOUND);
