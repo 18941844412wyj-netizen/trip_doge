@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,6 +39,7 @@ import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.load
 @RestController
 @RequestMapping("/doc")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*", allowCredentials = "true")
 public class DocController {
     final EmbeddingStoreIngestor ingestor;
     final MinioClient minioClient;
