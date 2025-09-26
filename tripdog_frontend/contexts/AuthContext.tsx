@@ -31,9 +31,8 @@ export function AuthProvider({children}: { children: ReactNode }) {
         try {
             const response = await userApi.getInfo();
             if (response.code === 0) {
-              setUser(response.data);
+                setUser(response.data);
             }
-            setUser(null)
         } catch (error) {
             console.error('检查用户状态失败:', error);
         } finally {
@@ -126,7 +125,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {
-        // throw new Error('useAuth must be used within an AuthProvider');
+        throw new Error('useAuth must be used within an AuthProvider');
     }
-    return {user: {}} as AuthContextType | undefined;
+    return context;
 }

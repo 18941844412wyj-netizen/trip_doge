@@ -6,16 +6,22 @@ import {Row, Col, Typography, Spin} from 'antd';
 import {useChatStore} from '@/stores/chatStore';
 import {motion} from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
 
 const {Title, Paragraph} = Typography;
 
 export default function CharactersPage() {
     const router = useRouter();
-    const {characters, currentCharacter, setCurrentCharacter, createSession} = useChatStore();
-    const { user, isLoading } = useAuth();
+    const {characters, currentCharacter, setCurrentCharacter, createSession, loadCharacters} = useChatStore();
+    const { user, isLoading: authLoading } = useAuth();
+
+    // 加载角色列表
+    useEffect(() => {
+        loadCharacters();
+    }, [loadCharacters]);
 
     // 检查用户是否已登录
-    if (isLoading) {
+    if (authLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <Spin size="large" />
@@ -33,6 +39,15 @@ export default function CharactersPage() {
         createSession(character.id);
         router.push('/chat');
     };
+
+    // 如果角色列表还在加载中
+    if (characters.length === 0) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Spin size="large" />
+            </div>
+        );
+    }
 
     return (
         <div className=" p-6 md:p-12 max-w-6xl mx-auto">

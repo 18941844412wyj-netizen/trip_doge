@@ -22,8 +22,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spin size="large" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-50">
+        <div className="text-center">
+          <Spin size="large" />
+          <div className="mt-4 text-xl font-bold text-orange-600">加载中...</div>
+        </div>
       </div>
     );
   }
