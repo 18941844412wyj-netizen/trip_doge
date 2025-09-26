@@ -121,6 +121,8 @@ h2/
 .swp
 .swo
 
+*.sh
+
 # Backup files
 *.bak
 *.backup

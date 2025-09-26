@@ -1,4 +1,4 @@
-package com.tripdog.model.req;
+package com.tripdog.model.dto;
 
 import lombok.Data;
 
@@ -8,7 +8,7 @@ import lombok.Data;
  * @description:
  */
 @Data
-public class ChatRequest {
+public class ChatReqDTO {
     private String roleId;
     private String message;
 }

@@ -1,21 +1,18 @@
 package com.tripdog.ai;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
 import com.alibaba.dashscope.tokenizers.Tokenizer;
 import com.alibaba.dashscope.tokenizers.TokenizerFactory;
+import com.tripdog.ai.compress.CompressionService;
 import com.tripdog.common.Constants;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.model.entity.ChatHistoryDO;
 import com.tripdog.model.builder.ConversationBuilder;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ChatMessageDeserializer;
-import dev.langchain4j.data.message.ChatMessageSerializer;
 import dev.langchain4j.data.message.CustomMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
@@ -38,7 +35,7 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
     private final String USER = "user";
     private final String ASSISTANT = "assistant";
     private final String SYSTEM = "system";
-
+    private final CompressionService compressionService;
 
     @Override
     public List<ChatMessage> getMessages(Object o) {
@@ -58,7 +55,8 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
                     break;
             }
         }
-        return chatMessages;
+        // 压缩处理
+        return compressionService.compress(chatMessages);
     }
 
     @Override
@@ -67,7 +65,12 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         ChatMessage latestMessage = list.getLast();
         String role = getRoleFromMessage(latestMessage);
         String message = getContentMessage(latestMessage);
-        
+
+        // 触发多轮改写/长期记忆生成
+        List<ChatMessage> historyMessages = list.subList(1, list.size() - 1);
+        // TODO: 可在这里调用multiTurnRewriteService分析historyMessages
+        //multiTurnRewriteService.rewrite(message, historyMessages);
+
         ChatHistoryDO chatHistoryDO;
         if (Constants.USER.equals(role)) {
             chatHistoryDO = ConversationBuilder.buildUserMessage(conversationId, message);
