@@ -9,6 +9,5 @@ import lombok.Data;
  */
 @Data
 public class ChatReqDTO {
-    private String roleId;
     private String message;
 }

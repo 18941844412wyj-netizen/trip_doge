@@ -3,6 +3,7 @@ package com.tripdog.ai;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import com.alibaba.dashscope.tokenizers.Tokenizer;
 import com.alibaba.dashscope.tokenizers.TokenizerFactory;
@@ -20,6 +21,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 
 /**
  * @author: iohw
@@ -43,15 +45,17 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         List<ChatHistoryDO> chatHistoryDOS = chatHistoryMapper.selectAllById(conversationId);
         List<ChatMessage> chatMessages = new ArrayList<>();
         for (ChatHistoryDO d : chatHistoryDOS) {
+            // 上下文使用检索增强后的内容
+            String content = StringUtils.hasText(d.getEnhancedContent()) ? d.getEnhancedContent() : d.getContent();
             switch (d.getRole()) {
                 case USER:
-                    chatMessages.add(UserMessage.from(d.getContent()));
+                    chatMessages.add(UserMessage.from(content));
                     break;
                 case ASSISTANT:
-                    chatMessages.add(AiMessage.from(d.getContent()));
+                    chatMessages.add(AiMessage.from(content));
                     break;
                 case SYSTEM:
-                    chatMessages.add(SystemMessage.from(d.getContent()));
+                    chatMessages.add(SystemMessage.from(content));
                     break;
             }
         }
@@ -67,9 +71,9 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         String message = getContentMessage(latestMessage);
 
         // 触发多轮改写/长期记忆生成
-        List<ChatMessage> historyMessages = list.subList(1, list.size() - 1);
         // TODO: 可在这里调用multiTurnRewriteService分析historyMessages
-        //multiTurnRewriteService.rewrite(message, historyMessages);
+        // List<ChatMessage> historyMessages = list.subList(1, list.size() - 1);
+        // multiTurnRewriteService.rewrite(message, historyMessages);
 
         ChatHistoryDO chatHistoryDO;
         if (Constants.USER.equals(role)) {
@@ -80,6 +84,13 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
             chatHistoryDO = ConversationBuilder.buildSystemMessage(conversationId, message);
         }
 
+        String content = chatHistoryDO.getContent();
+        if(isEnhanced(content)) {
+            // 保存增强后的完整内容到 enhanced_content 字段
+            chatHistoryDO.setEnhancedContent(content);
+            // 原始内容提取并保存到 content 字段
+            chatHistoryDO.setContent(extractOrigin(content));
+        }
         chatHistoryMapper.insert(chatHistoryDO);
     }
 
@@ -125,4 +136,12 @@ public class PersistentChatMemoryStore implements ChatMemoryStore {
         throw new IllegalArgumentException("Unknown message type: " + message.getClass().getName());
     }
 
+    private String extractOrigin(String content) {
+        int i = content.indexOf(INJECT_TEMPLATE);
+        return i == -1 ? content : content.substring(i + INJECT_TEMPLATE.length());
+    }
+
+    private boolean isEnhanced(String content) {
+        return content.contains(INJECT_TEMPLATE);
+    }
 }

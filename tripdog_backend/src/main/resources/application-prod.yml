@@ -30,4 +30,4 @@ info:
   app:
     name: TripDog Backend
     version: 1.0.0
-    description: TripDog旅行伴侣后端服务
+    description: TripDog 后端服务

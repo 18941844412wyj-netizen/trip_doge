@@ -55,3 +55,10 @@ mybatis:
     cache-enabled: false
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
+# minio
+minio:
+  endpoint: ${MINIO_ENDPOINT}
+  access-key: ${MINIO_AK}
+  secret-key: ${MINIO_SK}
+  bucket-name: trip-doge
+
