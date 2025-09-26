@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import com.tripdog.ai.assistant.ChatAssistant;
 
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 @Configuration
 @RequiredArgsConstructor
 public class AssistantService {
+    final ChatLanguageModel chatLangModel;
     final StreamingChatLanguageModel chatLanguageModel;
     final ChatMemoryStore chatMemoryStore;
 

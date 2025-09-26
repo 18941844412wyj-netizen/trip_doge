@@ -8,7 +8,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.RoleDO;
-import com.tripdog.model.req.ChatRequest;
+import com.tripdog.model.dto.ChatReqDTO;
 import com.tripdog.service.ChatService;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
@@ -34,7 +34,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatAssistant assistant;
 
     @Override
-    public SseEmitter chat(Long roleId, Long userId, ChatRequest chatRequest) {
+    public SseEmitter chat(Long roleId, Long userId, ChatReqDTO ChatReqDTO) {
         SseEmitter emitter = new SseEmitter(-1L);
 
         try {
@@ -55,9 +55,12 @@ public class ChatServiceImpl implements ChatService {
 
             StringBuilder responseBuilder = new StringBuilder();
             // 使用角色专用的聊天助手，传入角色的系统提示词
+
+            String userInput = ChatReqDTO.getMessage();
+
             TokenStream stream = assistant.chat(
                 conversation.getConversationId(),
-                chatRequest.getMessage()
+                userInput
             );
 
             stream.onPartialResponse((data) -> {

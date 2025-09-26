@@ -16,3 +16,11 @@ langchain4j:
         api-key: ${DASHSCOPE_API_KEY}
         model-name: text-embedding-v3
         dimensions: 1024
+
+
+chat:
+  compress:
+    enabled: true
+    maxTotalTokens: 6000
+    recentRawCount: 10
+    minMessagesToCompress: 20

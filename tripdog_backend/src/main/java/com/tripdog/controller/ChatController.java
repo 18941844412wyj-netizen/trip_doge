@@ -7,9 +7,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
+import com.tripdog.model.dto.ChatReqDTO;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.ChatHistoryDO;
-import com.tripdog.model.req.ChatRequest;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ChatService;
 import com.tripdog.service.impl.ConversationServiceImpl;
@@ -35,7 +35,7 @@ public class ChatController {
      */
     @PostMapping(value = "/{roleId}", produces = "text/event-stream;charset=UTF-8")
     public SseEmitter chat(@PathVariable Long roleId,
-                          @RequestBody ChatRequest req,
+                          @RequestBody ChatReqDTO req,
                             HttpSession session) {
 
         UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
