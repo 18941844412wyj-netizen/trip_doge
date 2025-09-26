@@ -120,7 +120,7 @@ h2/
 *~
 .swp
 .swo
-
+mvnw*
 *.sh
 
 # Backup files
