@@ -8,7 +8,6 @@ import {
     MicOff,
     Volume2,
     VolumeX,
-    Bot,
     User,
     X, RotateCw, History
 } from 'lucide-react';
@@ -16,12 +15,6 @@ import ReactMarkdown from 'react-markdown';
 import './VoiceChat.css'
 
 import {Character} from "@/types";
-
-// 配置接口
-interface VoiceAssistantConfig {
-    OPENAI_API_KEY: string;
-    OPENAI_PROXY_URL?: string;
-}
 
 // 消息类型
 interface Message {
@@ -32,10 +25,7 @@ interface Message {
     isStreaming?: boolean; // 添加流式标记
 }
 
-const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character: Character }> = ({
-                                                                                                     config,
-                                                                                                     character
-                                                                                                 }) => {
+const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) => {
     // 状态管理
     const [messages, setMessages] = useState<Message[]>([]);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
@@ -131,14 +121,16 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
         for (const line of lines) {
             if (line.startsWith('data: ')) {
                 const data = line.slice(6);
-                if (data === '[DONE]') {
+                if (data === '[DONE]' || data === 'end') {
                     return {done: true, content};
                 }
                 try {
                     const parsed = JSON.parse(data);
-                    const delta = parsed.choices?.[0]?.delta?.content;
-                    if (delta) {
-                        content += delta;
+                    // 处理新的流格式: {"type": "message", "content": "文本"}
+                    if (parsed.type === 'message') {
+                        content += parsed.content;
+                    } else if (parsed.type === 'end') {
+                        return {done: true, content};
                     }
                 } catch (e) {
                     // 忽略解析错误
@@ -149,58 +141,58 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
         return {done: false, content};
     };
 
-    function splitAtFirstValidSentenceEnding(text: string, minSentenceLength: number = 1) {
-        const sentenceEndingRegex = new RegExp(
-            // 负向后行断言 (Negative Lookbehind) - 排除非句末标点的情况
-            '(?<!\\.\\.)' + // 排除英文省略号 "..." 中的第二个和第三个点
-            '(?<![…‥])' + // 排除 Unicode 省略号 "…" (U+2026) 和 "‥" (U+2025)
-            '(?<!\\d\\.)' + // 排除数字中的小数点，如 "1.2"
-            // 排除常见英文缩写，如 "Mr."。"\\b" 确保是单词边界，避免误判如 "data.xml"
-            '(?<!\\b(?:Mr|Dr|Mrs|Ms|Jr|Sr|Prof|e\\.g|i\\.e|etc|vs|v|viz|cf)\\.)' +
-
-            // 匹配句末标点符号本身，允许连续的相同或不同句末标点
-            '[。！？.!?．]+' + // 匹配一个或多个句号、问号、感叹号、英文句号 `.`、中文全角句号 `．`
-
-            // 负向先行断言 (Negative Lookahead) - 确保标点后不紧跟字母或数字
-            // 这有助于区分 "word.next" (不应分割) 和 "word. Next" (应分割)
-            '(?![0-9a-zA-Z])'
-        );
-
-        const match = text.match(sentenceEndingRegex);
-
-        if (match && match.index !== undefined) {
-            // match[0] 包含了匹配到的完整标点符号串 (e.g., "!", "!!", "。")
-            // 修正 endIndex 的计算，应加上匹配到的标点长度
-            const endIndex = match.index + match[0].length;
-
-            const firstSentence = text.substring(0, endIndex).trim();
-            const remainingText = text.substring(endIndex).trim();
-
-            // 确保句子有最小长度（避免太短的片段，如仅有标点的片段）
-            // 这里的 minSentenceLength 现在是可配置的参数
-            if (firstSentence.length < minSentenceLength) {
-                // 如果第一个“句子”过短，则认为没有找到有效的句末进行分割
-                return {
-                    hasSentenceEnding: false,
-                    firstSentence: text, // 返回原文本作为一个整体
-                    remainingText: ""
-                };
-            }
-
-            return {
-                hasSentenceEnding: true,
-                firstSentence: firstSentence,
-                remainingText: remainingText
-            };
-        }
-
-        // 如果整个文本中都没有找到任何有效的句末标点
-        return {
-            hasSentenceEnding: false,
-            firstSentence: text,
-            remainingText: ""
-        };
-    }
+    // function splitAtFirstValidSentenceEnding(text: string, minSentenceLength: number = 1) {
+    //     const sentenceEndingRegex = new RegExp(
+    //         // 负向后行断言 (Negative Lookbehind) - 排除非句末标点的情况
+    //         '(?<!\\.\\.)' + // 排除英文省略号 "..." 中的第二个和第三个点
+    //         '(?<![…‥])' + // 排除 Unicode 省略号 "…" (U+2026) 和 "‥" (U+2025)
+    //         '(?<!\\d\\.)' + // 排除数字中的小数点，如 "1.2"
+    //         // 排除常见英文缩写，如 "Mr."。"\\b" 确保是单词边界，避免误判如 "data.xml"
+    //         '(?<!\\b(?:Mr|Dr|Mrs|Ms|Jr|Sr|Prof|e\\.g|i\\.e|etc|vs|v|viz|cf)\\.)' +
+    //
+    //         // 匹配句末标点符号本身，允许连续的相同或不同句末标点
+    //         '[。！？.!?．]+' + // 匹配一个或多个句号、问号、感叹号、英文句号 `.`、中文全角句号 `．`
+    //
+    //         // 负向先行断言 (Negative Lookahead) - 确保标点后不紧跟字母或数字
+    //         // 这有助于区分 "word.next" (不应分割) 和 "word. Next" (应分割)
+    //         '(?![0-9a-zA-Z])'
+    //     );
+    //
+    //     const match = text.match(sentenceEndingRegex);
+    //
+    //     if (match && match.index !== undefined) {
+    //         // match[0] 包含了匹配到的完整标点符号串 (e.g., "!", "!!", "。")
+    //         // 修正 endIndex 的计算，应加上匹配到的标点长度
+    //         const endIndex = match.index + match[0].length;
+    //
+    //         const firstSentence = text.substring(0, endIndex).trim();
+    //         const remainingText = text.substring(endIndex).trim();
+    //
+    //         // 确保句子有最小长度（避免太短的片段，如仅有标点的片段）
+    //         // 这里的 minSentenceLength 现在是可配置的参数
+    //         if (firstSentence.length < minSentenceLength) {
+    //             // 如果第一个“句子”过短，则认为没有找到有效的句末进行分割
+    //             return {
+    //                 hasSentenceEnding: false,
+    //                 firstSentence: text, // 返回原文本作为一个整体
+    //                 remainingText: ""
+    //             };
+    //         }
+    //
+    //         return {
+    //             hasSentenceEnding: true,
+    //             firstSentence: firstSentence,
+    //             remainingText: remainingText
+    //         };
+    //     }
+    //
+    //     // 如果整个文本中都没有找到任何有效的句末标点
+    //     return {
+    //         hasSentenceEnding: false,
+    //         firstSentence: text,
+    //         remainingText: ""
+    //     };
+    // }
 
     // 流式获取AI回答
     const getAIResponseStream = useCallback(async (userMessage: string, messageId: string): Promise<string> => {
@@ -212,23 +204,14 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
         setIsStreaming(true);
 
         try {
-            const response = await fetch(`${config.OPENAI_PROXY_URL || 'https://api.openai.com/v1'}/chat/completions`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/chat/${character.id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.OPENAI_API_KEY}`,
                 },
                 signal: abortControllerRef.current.signal,
                 body: JSON.stringify({
-                    model: 'deepseek-chat',
-                    messages: [
-                        {role: 'system', content: character.systemPrompt},
-                        ...messages.slice(-10).map(msg => ({role: msg.role, content: msg.content})),
-                        {role: 'user', content: userMessage}
-                    ],
-                    max_tokens: 800,
-                    temperature: 1.5,
-                    stream: true, // 启用流式输出
+                    message: userMessage
                 }),
             });
 
@@ -272,22 +255,22 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                         return newMessages;
                     });
 
-                    const {
-                        hasSentenceEnding,
-                        firstSentence,
-                        remainingText
-                    } = splitAtFirstValidSentenceEnding(fullResponse)
-
-                    console.log({
-                        hasSentenceEnding,
-                        firstSentence,
-                        remainingText
-                    })
-                    if (hasSentenceEnding && autoPlay && !isTTSLoading) {
-                        console.log('自动播放')
-                        setPendingTTSText(firstSentence);
-                        fullResponse = remainingText
-                    }
+                    // const {
+                    //     hasSentenceEnding,
+                    //     firstSentence,
+                    //     remainingText
+                    // } = splitAtFirstValidSentenceEnding(fullResponse)
+                    //
+                    // console.log({
+                    //     hasSentenceEnding,
+                    //     firstSentence,
+                    //     remainingText
+                    // })
+                    // if (hasSentenceEnding && autoPlay && !isTTSLoading) {
+                    //     console.log('自动播放')
+                    //     setPendingTTSText(firstSentence);
+                    //     fullResponse = remainingText
+                    // }
                 }
 
                 if (streamDone) {
@@ -312,7 +295,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
         } finally {
             setIsStreaming(false);
         }
-    }, [autoPlay, character, config, isTTSLoading, messages]);
+    }, [autoPlay, character, isTTSLoading]);
 
     // 处理消息（流式发送和播放）
     const handleProcessMessage = useCallback(async (text: string) => {
@@ -371,7 +354,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
     // 处理发送消息
     const handleSendMessage = async () => {
         if (!inputValue.trim() || isProcessingAI || isStreaming) return;
-        
+
         const text = inputValue.trim();
         setInputValue('');
         await handleProcessMessage(text);
@@ -381,7 +364,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
     const toggleRecording = () => {
         // 如果AI正在处理或流式传输，则不允许录音
         if (isProcessingAI || isStreaming) return;
-        
+
         if (isRecording) {
             stopRecording();
         } else {
@@ -612,7 +595,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                             <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
                                             shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)] 
                                             bg-gradient-to-br from-blue-100 to-blue-200">
-                                <User size={14} className="text-blue-600" />
+                                <User size={14} className="text-blue-600"/>
                             </div>
                             <div className="flex-1 px-4 py-3 rounded-2xl text-sm font-medium
                                           shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
@@ -700,19 +683,19 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                                     hover:scale-105 hover:-translate-y-0.5
                                     disabled:opacity-50 disabled:cursor-not-allowed
                                     ${isProcessingAI || isStreaming || isRecognizing || !inputValue.trim()
-                                        ? 'bg-gradient-to-br from-gray-300 to-gray-400'
-                                        : 'bg-gradient-to-br from-purple-300 to-purple-400'
-                                    }
+                                    ? 'bg-gradient-to-br from-gray-300 to-gray-400'
+                                    : 'bg-gradient-to-br from-purple-300 to-purple-400'
+                                }
                                 `}
                             >
-                                <svg 
-                                    xmlns="http://www.w3.org/2000/svg" 
-                                    viewBox="0 0 24 24" 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    strokeWidth="2" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
                                     className="w-5 h-5"
                                 >
                                     <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -727,9 +710,8 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
             {showHistory && (
                 <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col
-                                 shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
                                  border border-white/30">
-                        <div className="flex items-center justify-between p-4 border-b bg-white/70 backdrop-blur-sm
+                        <div className="flex items-center justify-between p-4 bg-white/70 backdrop-blur-sm
                                      shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
                                      border-b border-white/30 rounded-t-2xl">
                             <h3 className="text-lg font-bold text-gray-800">对话历史</h3>
@@ -799,7 +781,7 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
                         </div>
 
                         {messages.length > 0 && (
-                            <div className="p-4 border-t bg-white/70 backdrop-blur-sm
+                            <div className="p-4 bg-white/70 backdrop-blur-sm
                                          shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
                                          border-t border-white/30">
                                 <button
@@ -825,29 +807,5 @@ const MinimalVoiceAssistant: React.FC<{ config: VoiceAssistantConfig, character:
 
 // 主应用组件保持不变
 export default function VoiceChat({character}: { character: Character }) {
-    const config: VoiceAssistantConfig = {
-        OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
-        OPENAI_PROXY_URL: process.env.NEXT_PUBLIC_OPENAI_PROXY_URL || 'https://api.openai.com',
-    };
-
-    if (!config.OPENAI_API_KEY) {
-        return (
-            <div className="min-h-screen flex items-center justify-center px-4">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-                    <div className="text-center">
-                        <div
-                            className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <X size={32} className="text-red-500"/>
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">配置缺失</h3>
-                        <p className="text-gray-600 text-sm">
-                            请在环境变量中设置 NEXT_PUBLIC_OPENAI_API_KEY
-                        </p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return <MinimalVoiceAssistant config={config} character={character}/>;
+    return <MinimalVoiceAssistant character={character}/>;
 }

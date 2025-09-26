@@ -1,10 +1,12 @@
+@reference 'tailwindcss';
+
 .layout-sider-menu {
     background-color: var(--color-orange-100) !important;
 }
 
 @media (max-width: 768px) {
     .layout-sider-menu {
-        @apply \!bg-gradient-to-br from-yellow-50 to-orange-50;
+        @apply !bg-gradient-to-br from-yellow-50 to-orange-50;
     }
 }
 

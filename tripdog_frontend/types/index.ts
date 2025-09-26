@@ -75,10 +75,6 @@ export interface ChatRequest {
     message: string;
 }
 
-export interface ResetConversationRequest {
-    userId: number;
-}
-
 // API响应基础类型
 export interface BaseResponse<T> {
     code: number;

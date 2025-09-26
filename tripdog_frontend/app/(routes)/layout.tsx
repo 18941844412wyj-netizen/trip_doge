@@ -12,6 +12,7 @@ import {
     Settings,
     Menu as MenuIcon,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import './layout.css'
 
 const {Header, Sider, Content} = Layout;
@@ -24,6 +25,27 @@ export default function RoutesLayout({
     const [collapsed] = useState(false);
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
     const pathname = usePathname();
+    const { user, isLoading } = useAuth();
+
+    // 如果用户未认证，则不显示菜单
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-50">
+                <div className="text-xl font-bold text-orange-600">加载中...</div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        // 不显示菜单，直接渲染子组件
+        return (
+            <Layout className="!min-h-screen">
+                <Content className="bg-gradient-to-br from-yellow-50 to-orange-50">
+                    {children}
+                </Content>
+            </Layout>
+        );
+    }
 
     const menuItems = [
         {
