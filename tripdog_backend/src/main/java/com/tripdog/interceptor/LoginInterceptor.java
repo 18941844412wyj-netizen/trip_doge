@@ -19,7 +19,10 @@ import static com.tripdog.common.Constants.USER_SESSION_KEY;
 @Component
 @Slf4j
 public class LoginInterceptor implements HandlerInterceptor {
-
+    // 基础过期时间（秒），例如 30 分钟
+    private static final int BASE_TIMEOUT = 30 * 60;
+    // 触发续期的阈值（秒），例如 10 分钟
+    private static final int RENEW_THRESHOLD = 10 * 60;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -52,6 +55,9 @@ public class LoginInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // Session续期逻辑：如果剩余时间少于10分钟，就续期10分钟
+        renewSessionIfNeeded(session);
+
         // 将用户信息放入请求属性中，便于Controller使用
         request.setAttribute("loginUser", loginUser);
         return true;
@@ -76,6 +82,34 @@ public class LoginInterceptor implements HandlerInterceptor {
         }
 
         return false;
+    }
+
+    /**
+     * Session续期逻辑
+     * 如果 session 剩余时间小于阈值，则重置为 BASE_TIMEOUT
+     */
+    private void renewSessionIfNeeded(HttpSession session) {
+        try {
+            if (session == null) {
+                return;
+            }
+
+            int maxInactiveInterval = session.getMaxInactiveInterval();
+            long lastAccessedTime = session.getLastAccessedTime();
+            long currentTime = System.currentTimeMillis();
+
+            // 已经过去的时间（秒）
+            long elapsedTime = (currentTime - lastAccessedTime) / 1000;
+            // 剩余时间（秒）
+            long remainingTime = maxInactiveInterval - elapsedTime;
+
+            if (remainingTime > 0 && remainingTime < RENEW_THRESHOLD) {
+                session.setMaxInactiveInterval(BASE_TIMEOUT);
+                log.debug("Session续期成功：剩余{}秒，重置为{}秒", remainingTime, BASE_TIMEOUT);
+            }
+        } catch (Exception e) {
+            log.warn("Session续期失败: {}", e.getMessage());
+        }
     }
 
     /**
