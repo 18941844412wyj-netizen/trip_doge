@@ -37,7 +37,7 @@
 
 @media screen and (max-width: 768px){
     .voice-root-min-h-screen{
-        height: calc(100vh - 64px);
+        height: calc(100vh);
     }
 
     .voice-start-min-h-screen{

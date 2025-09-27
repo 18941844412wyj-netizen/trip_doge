@@ -13,25 +13,28 @@ import {
     Menu as MenuIcon,
     FileText
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import {useAuth} from '@/contexts';
 import './layout.css'
+import {useMediaQuery} from 'react-responsive';
+import {MenuItemType} from "antd/es/menu/interface";
+
 
 const {Header, Sider, Content} = Layout;
 
-export default function RoutesLayout({
-                                         children,
-                                     }: {
+export default function RoutesLayout({children}: {
     children: React.ReactNode;
 }) {
     const [collapsed] = useState(false);
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
     const pathname = usePathname();
-    const { user, isLoading } = useAuth();
+    const {user, isLoading} = useAuth();
+    const isMobile = useMediaQuery({maxWidth: 768});
 
     // 如果用户未认证，则不显示菜单
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-50">
+            <div
+                className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-50">
                 <div className="text-xl font-bold text-orange-600">加载中...</div>
             </div>
         );
@@ -48,7 +51,32 @@ export default function RoutesLayout({
         );
     }
 
-    const menuItems = [
+    // 桌面端菜单项（不包含"选择角色"）
+    const desktopMenuItems: MenuItemType[] = [
+        {
+            key: '/chat',
+            icon: <MessageCircle className="w-4 h-4"/>,
+            label: <Link href="/chat">开始对话</Link>,
+        },
+        {
+            key: '/files',
+            icon: <FileText className="w-4 h-4"/>,
+            label: <Link href="/files">文件管理</Link>,
+        },
+        {
+            key: '/history',
+            icon: <HistoryIcon className="w-4 h-4"/>,
+            label: <Link href="/history">历史记录</Link>,
+        },
+        {
+            key: '/settings',
+            icon: <Settings className="w-4 h-4"/>,
+            label: <Link href="/settings">设置</Link>,
+        },
+    ];
+
+    // 移动端菜单项（包含"选择角色"）
+    const mobileMenuItems: MenuItemType[] = [
         {
             key: '/characters',
             icon: <Users className="w-4 h-4"/>,
@@ -75,6 +103,8 @@ export default function RoutesLayout({
             label: <Link href="/settings">设置</Link>,
         },
     ];
+
+    const menuItems = isMobile ? mobileMenuItems : desktopMenuItems;
 
     const SideMenu = () => (
         <Menu
@@ -164,7 +194,13 @@ export default function RoutesLayout({
                             TripDoge
                         </h2>
                     </div>
-                    <SideMenu/>
+                    <Menu
+                        mode="inline"
+                        selectedKeys={[pathname]}
+                        items={mobileMenuItems}
+                        className="!border-r-0 !bg-gradient-to-br from-yellow-50 to-orange-50"
+                        style={{fontSize: '16px'}}
+                    />
                 </Drawer>
             </Layout>
         </Layout>

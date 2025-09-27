@@ -10,7 +10,6 @@ import VoiceChat from '@/components/chat/VoiceChat';
 import {motion} from 'framer-motion';
 import {useAuth} from '@/contexts/AuthContext';
 import Image from "next/image";
-import {Character} from "@/types";
 
 export default function ChatPage() {
     const router = useRouter();
@@ -61,18 +60,6 @@ export default function ChatPage() {
         );
     }
 
-    // 将RoleInfoVO转换为Character类型
-    const character: Character = {
-        id: currentCharacter.id.toString(),
-        name: currentCharacter.name,
-        avatar: currentCharacter.avatarUrl || '🤖', // 使用角色头像URL或默认头像
-        description: currentCharacter.description || '',
-        systemPrompt: currentCharacter.roleSetting || '',
-        voiceId: 'default', // 默认语音ID
-        primaryColor: 'blue', // 默认主色调
-        bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' // 默认背景渐变
-    };
-
     return (
         <div className="relative">
             {/* 欢迎动画 */}
@@ -101,7 +88,7 @@ export default function ChatPage() {
             )}
 
             {/* 聊天主体 */}
-            <VoiceChat character={character}/>
+            <VoiceChat character={currentCharacter}/>
         </div>
     );
 }

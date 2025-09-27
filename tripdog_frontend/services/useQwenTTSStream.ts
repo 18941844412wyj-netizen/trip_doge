@@ -1,7 +1,7 @@
-import {useState, useRef, useCallback, useEffect} from 'react';
+import { useState, useRef, useCallback } from 'react';
 
-// 通义千问语音合成 Hook (非实时版本)
-export const useQwenTTS = (initialText = '', options: {
+// 通义千问语音合成 Hook (流式版本)
+export const useQwenTTSStream = (initialText = '', options: {
     voice?: string;
     model?: string;
     language_type?: string;
@@ -12,9 +12,10 @@ export const useQwenTTS = (initialText = '', options: {
         language_type = 'Chinese'
     } = options;
 
-    const [isGlobalLoading, setIsGlobalLoading] = useState(false);
+    const [isGlobalLoading, setIsLoading] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [error, setError] = useState<Error | null>(null);
+    const [progress, setProgress] = useState(0);
 
     const audioContextRef = useRef<AudioContext | null>(null);
     const textRef = useRef(initialText);
@@ -33,16 +34,17 @@ export const useQwenTTS = (initialText = '', options: {
         textRef.current = text;
     }, []);
 
-    // 开始语音合成
+    // 开始流式语音合成
     const start = useCallback(async () => {
         if (!textRef.current) {
             setError(new Error('请输入要合成的文本'));
             return;
         }
 
-        setIsGlobalLoading(true);
+        setIsLoading(true);
         setIsPlaying(true);
         setError(null);
+        setProgress(0);
 
         try {
             // 调用后端API获取语音
@@ -71,6 +73,9 @@ export const useQwenTTS = (initialText = '', options: {
                 throw new Error('Received empty audio data');
             }
 
+            // 更新进度
+            setProgress(50);
+
             // 创建新的音频上下文
             const audioContext = await createAudioContext();
 
@@ -85,6 +90,9 @@ export const useQwenTTS = (initialText = '', options: {
                 setError(new Error('音频解码失败，播放静音'));
             }
 
+            // 更新进度
+            setProgress(100);
+
             // 播放音频
             const source = audioContext.createBufferSource();
             source.buffer = audioBuffer;
@@ -97,14 +105,14 @@ export const useQwenTTS = (initialText = '', options: {
             // 监听播放完成事件
             source.onended = () => {
                 setIsPlaying(false);
-                setIsGlobalLoading(false);
+                setIsLoading(false);
                 sourceRef.current = null;
             };
         } catch (err) {
             console.error('语音合成出错:', err);
             setError(err as Error);
             setIsPlaying(false);
-            setIsGlobalLoading(false);
+            setIsLoading(false);
         }
     }, [model, voice, language_type]);
 
@@ -121,20 +129,13 @@ export const useQwenTTS = (initialText = '', options: {
         }
 
         setIsPlaying(false);
-        setIsGlobalLoading(false);
+        setIsLoading(false);
     }, []);
 
     // 清理资源
     const cleanup = useCallback(() => {
         stop();
     }, [stop]);
-
-    // 组件卸载时清理
-    useEffect(() => {
-        return () => {
-            cleanup();
-        };
-    }, [cleanup]);
 
     return {
         setText,
@@ -143,6 +144,7 @@ export const useQwenTTS = (initialText = '', options: {
         cleanup,
         isGlobalLoading,
         isPlaying,
-        error
+        error,
+        progress
     };
 };

@@ -2,7 +2,7 @@
 
 import React, {useState, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
-import {useAuth} from '@/contexts/AuthContext';
+import {useAuth} from '@/contexts';
 import {Button, Form, Input, Card, Typography, Space, App} from 'antd';
 import {MailOutlined, LockOutlined, UserOutlined, SafetyCertificateOutlined} from '@ant-design/icons';
 import Link from 'next/link';

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, Typography, Spin, List, Avatar, Button, Empty, Tag } from 'antd';
-import { HistoryOutlined, UserOutlined, RobotOutlined, DeleteOutlined } from '@ant-design/icons';
+import { HistoryOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
 import { useChatStore } from '@/stores/chatStore';
 import { chatApi } from '@/services/api';
 import { ChatHistoryDO } from '@/types';
@@ -17,7 +17,6 @@ export default function History() {
   const { currentCharacter } = useChatStore();
   const [history, setHistory] = useState<ChatHistoryDO[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
 
   // 检查用户是否已登录
   useEffect(() => {
@@ -34,7 +33,7 @@ export default function History() {
       try {
         setLoading(true);
         const response = await chatApi.history(currentCharacter.id);
-        if (response.code === 0) {
+        if (response.code === 200) {
           setHistory(response.data);
         }
       } catch (error) {
@@ -46,23 +45,6 @@ export default function History() {
 
     fetchHistory();
   }, [currentCharacter]);
-
-  // 删除历史记录
-  const handleClearHistory = async () => {
-    if (!currentCharacter?.id) return;
-    
-    try {
-      setDeleting(true);
-      const response = await chatApi.reset(currentCharacter.id);
-      if (response.code === 0) {
-        setHistory([]);
-      }
-    } catch (error) {
-      console.error('清空历史记录失败:', error);
-    } finally {
-      setDeleting(false);
-    }
-  };
 
   // 格式化时间
   const formatTime = (timestamp: string) => {
@@ -92,27 +74,6 @@ export default function History() {
             {currentCharacter ? `与 ${currentCharacter.name} 的对话记录` : '请选择角色查看历史记录'}
           </Text>
         </Card>
-
-        {/* 操作栏 */}
-        {currentCharacter && history.length > 0 && (
-          <Card className="shadow-xl rounded-2xl border-0 bg-white/80 backdrop-blur-sm mb-6">
-            <div className="flex justify-between items-center">
-              <Text className="text-gray-700">
-                共 {history.length} 条记录
-              </Text>
-              <Button
-                type="primary"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={handleClearHistory}
-                loading={deleting}
-                className="rounded-xl bg-gradient-to-br from-red-400 to-red-500 text-white border-0 shadow-[0_4px_12px_rgba(239,68,68,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)] hover:shadow-[0_8px_24px_rgba(239,68,68,0.5),inset_0_2px_4px_rgba(255,255,255,0.4)] hover:scale-105 hover:-translate-y-0.5 transition-all duration-300 transform active:scale-95"
-              >
-                清空历史
-              </Button>
-            </div>
-          </Card>
-        )}
 
         {/* 历史记录列表 */}
         <Card className="shadow-xl rounded-2xl border-0 bg-white/80 backdrop-blur-sm">

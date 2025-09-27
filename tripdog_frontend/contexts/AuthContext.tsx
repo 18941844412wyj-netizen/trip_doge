@@ -14,48 +14,65 @@ interface AuthContextType {
     }>;
     sendEmailCode: (email: string) => Promise<{ success: boolean; message: string }>;
     isLoading: boolean;
+    token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({children}: { children: ReactNode }) {
     const [user, setUser] = useState<UserInfoVO | null>(null);
+    const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // 初始化时从localStorage恢复用户信息
     useEffect(() => {
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+            setToken(storedToken);
+        }
         checkUserStatus();
     }, []);
 
     const checkUserStatus = async () => {
         try {
             const response = await userApi.getInfo();
-            console.log('检查用户状态响应:', response);
             if (response.code === 200) {
-                console.log('设置用户状态:', response.data);
                 setUser(response.data);
             } else {
-                console.log('用户未登录或会话已过期');
                 // 清除存储的用户信息
                 localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                setToken(null);
             }
         } catch (error) {
             console.error('检查用户状态失败:', error);
             // 清除存储的用户信息
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            setToken(null);
         } finally {
-            console.log('结束检查用户状态');
             setIsLoading(false);
         }
     };
 
     const login = async (email: string, password: string) => {
         try {
-            //setIsLoading(true);
             const response = await userApi.login({email, password});
 
-            if (response.code === 200) {
-                setUser(response.data);
+            if (response.code === 200 && response.data) {
+                // 提取用户信息和token
+                const userInfo = response.data.userInfo;
+                const token = response.data.token;
+                
+                if (userInfo) {
+                    setUser(userInfo);
+                }
+                
+                if (token) {
+                    setToken(token);
+                    localStorage.setItem('token', token);
+                }
+                
                 return {success: true, message: '登录成功'};
             } else {
                 return {success: false, message: response.message};
@@ -63,20 +80,19 @@ export function AuthProvider({children}: { children: ReactNode }) {
         } catch (error) {
             console.error('登录失败:', error);
             return {success: false, message: '登录失败，请稍后重试'};
-        } finally {
-            //setIsLoading(false);
         }
     };
 
     const logout = async () => {
         try {
             await userApi.logout();
-            setUser(null);
         } catch (error) {
-            console.error('登出失败:', error);
+            console.error('登出API调用失败:', error);
+        } finally {
             setUser(null);
-            // 即使API调用失败，也清除本地用户状态
+            setToken(null);
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
         }
     };
 
@@ -85,8 +101,9 @@ export function AuthProvider({children}: { children: ReactNode }) {
             setIsLoading(true);
             const response = await userApi.register({email, password, nickname, code});
 
-            if (response.code === 0) {
+            if (response.code === 200) {
                 setUser(response.data);
+                
                 return {success: true, message: '注册成功'};
             } else {
                 return {success: false, message: response.message};
@@ -103,7 +120,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
         try {
             const response = await userApi.sendEmail({email});
 
-            if (response.code === 0) {
+            if (response.code === 200) {
                 return {success: true, message: '验证码已发送'};
             } else {
                 return {success: false, message: response.message};
@@ -120,7 +137,8 @@ export function AuthProvider({children}: { children: ReactNode }) {
         logout,
         register,
         sendEmailCode,
-        isLoading
+        isLoading,
+        token
     };
 
     return (
@@ -135,5 +153,5 @@ export function useAuth() {
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
-    return context; // {user: {}} as AuthContextType; //
+    return context;
 }
