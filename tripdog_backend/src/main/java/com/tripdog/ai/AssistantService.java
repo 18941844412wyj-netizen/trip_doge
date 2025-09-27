@@ -1,12 +1,11 @@
 package com.tripdog.ai;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.ai.embedding.RetrieverFactory;
 import com.tripdog.ai.mcp.McpClientFactory;
+import com.tripdog.ai.tool.MyTools;
 
 import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.McpClient;
@@ -17,6 +16,7 @@ import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.injector.DefaultContentInjector;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.ToolProvider;
 import lombok.RequiredArgsConstructor;
 import static com.tripdog.ai.mcp.McpConstants.WEB_SEARCH;
 import static com.tripdog.common.Constants.INJECT_TEMPLATE;
@@ -43,15 +43,16 @@ public class AssistantService {
             .build();
 
         // todo 接入mcp
-        McpClient mcpClient = mcpClientFactory.getMcpClient(WEB_SEARCH);
-        McpToolProvider toolProvider = McpToolProvider.builder()
-            .mcpClients(mcpClient)
-            .build();
+        // McpClient mcpClient = mcpClientFactory.getMcpClient(WEB_SEARCH);
+        // McpToolProvider toolProvider = McpToolProvider.builder()
+        //     .mcpClients(mcpClient)
+        //     .build();
 
         return AiServices.builder(ChatAssistant.class)
             .streamingChatModel(chatLanguageModel)
             .retrievalAugmentor(retrievalAugmentor)
             .chatMemoryProvider(chatMemoryProvider)
+            // .tools(new MyTools())
             // .toolProvider(toolProvider)
             .build();
 
