@@ -24,9 +24,15 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 获取请求URI
+        // 获取请求URI和方法
         String requestURI = request.getRequestURI();
-        log.debug("登录拦截器检查: {}", requestURI);
+        String method = request.getMethod();
+        log.debug("登录拦截器检查: {} {}", method, requestURI);
+
+        // 对于OPTIONS请求（预检请求），直接放行
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            return true;
+        }
 
         // 检查是否是需要登录的接口
         if (isExcludedPath(requestURI)) {
