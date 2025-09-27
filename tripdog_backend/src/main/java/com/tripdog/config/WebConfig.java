@@ -24,7 +24,10 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/user/register",      // 注册
                         "/api/user/login",         // 登录
                         "/api/user/sendEmail",     // 发送验证码
-                        "/api/roles/list"          // 角色列表（可能需要在未登录时访问）
+                        "/api/roles/list",         // 角色列表（可能需要在未登录时访问）
+                        "/api/api-docs/**",        // Swagger API 文档
+                        "/api/swagger-ui/**",      // Swagger UI 资源
+                        "/api/swagger-ui.html"     // Swagger UI 首页
                 );
     }
 
