@@ -4,7 +4,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Spin } from 'antd';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

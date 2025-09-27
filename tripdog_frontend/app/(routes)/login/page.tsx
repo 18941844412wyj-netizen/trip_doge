@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useState, useEffect} from 'react';
+import React, {useEffect} from 'react';
 import {useRouter} from 'next/navigation';
 import {useAuth} from '@/contexts/AuthContext';
 import {Button, Form, Input, Card, Typography, Spin, App} from 'antd';
@@ -14,7 +14,6 @@ export default function LoginPage() {
     const [form] = Form.useForm();
     const router = useRouter();
     const {login, isLoading, user} = useAuth();
-    const [error, setError] = useState('');
 
     // 如果用户已经登录，重定向到聊天页面
     useEffect(() => {
@@ -30,10 +29,10 @@ export default function LoginPage() {
                 message.success(result.message);
                 router.push('/chat');
             } else {
-                setError(result.message);
+                message.error(result.message);
             }
         } catch {
-            setError('登录过程中发生错误');
+            message.error('登录过程中发生错误');
         }
     };
 
@@ -56,13 +55,6 @@ export default function LoginPage() {
                     <Title level={2} className="!mb-2 !text-gray-800">欢迎回来</Title>
                     <Text type="secondary" className="!text-gray-600">登录您的账户以继续</Text>
                 </div>
-
-                {error && (
-                    <div
-                        className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]">
-                        {error}
-                    </div>
-                )}
 
                 <Form
                     form={form}

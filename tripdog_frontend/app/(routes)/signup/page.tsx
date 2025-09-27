@@ -10,7 +10,11 @@ import Link from 'next/link';
 const {Title, Text} = Typography;
 
 function Countdown({value, format, onFinish}: { value: number, format: string, onFinish: () => void }) {
-    const [remaining, setRemaining] = useState(Math.max(0, Math.floor((value - Date.now()) / 1000)));
+    const [remaining, setRemaining] = useState(0);
+    
+    useEffect(() => {
+        setRemaining(Math.max(0, Math.floor((value - Date.now()) / 1000)));
+    }, [value]);
 
     useEffect(() => {
         if (remaining <= 0) {
@@ -65,56 +69,48 @@ export default function SignupPage() {
         }
     };
 
-    const onSendCode = async () => {
+    const handleSendCode = async () => {
+        const email = form.getFieldValue('email');
+        if (!email) {
+            message.error('请输入邮箱地址');
+            return;
+        }
+
         try {
-            setIsSendingCode(true); // 开始发送验证码时设置为 true
-            const email = form.getFieldValue('email');
-            if (!email) {
-                message.error('请输入邮箱地址');
-                return;
-            }
-            const emailValidation = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailValidation.test(email)) {
-                message.error('请输入有效的邮箱地址');
-                return;
-            }
+            setIsSendingCode(true);
             const result = await sendEmailCode(email);
             if (result.success) {
-                message.success(result.message);
-                setCountdown(Date.now() + 60000); // 60秒倒计时
+                message.success('验证码已发送，请查收邮箱');
+                setCountdown(Date.now() + 60 * 1000); // 60秒倒计时
             } else {
                 message.error(result.message);
             }
-        } catch (err) {
+        } catch {
             message.error('发送验证码失败');
         } finally {
-            setIsSendingCode(false); // 无论成功失败都重置状态
+            setIsSendingCode(false);
         }
     };
 
     return (
-        <div
-            className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 p-4">
-            <Card
-                className="w-full max-w-md !rounded-2xl border border-white/30 bg-white/80 backdrop-blur-sm shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]">
-                <div className="text-center mb-8">
-                    <Title level={2} className="!mb-2 !text-gray-800">创建账户</Title>
-                    <Text type="secondary" className="!text-gray-600">填写信息开始您的旅程</Text>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 p-4">
+            <Card className="w-full max-w-md shadow-xl rounded-2xl border-0 bg-white/80 backdrop-blur-sm">
+                <div className="text-center mb-6">
+                    <Title level={2}>用户注册</Title>
+                    <Text type="secondary">欢迎加入TripDoge</Text>
                 </div>
 
                 {error && (
-                    <div
-                        className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]">
+                    <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
                         {error}
                     </div>
                 )}
 
                 <Form
                     form={form}
-                    name="register"
+                    name="signup"
                     onFinish={onFinish}
                     layout="vertical"
-                    requiredMark={false}
                 >
                     <Form.Item
                         name="email"
@@ -125,9 +121,9 @@ export default function SignupPage() {
                     >
                         <Input
                             prefix={<MailOutlined className="text-gray-400"/>}
-                            placeholder="邮箱地址"
+                            placeholder="邮箱"
                             size="large"
-                            className="rounded-xl border border-white/30 bg-white/70 backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]"
+                            className="rounded-xl"
                         />
                     </Form.Item>
 
@@ -139,38 +135,8 @@ export default function SignupPage() {
                             prefix={<UserOutlined className="text-gray-400"/>}
                             placeholder="昵称"
                             size="large"
-                            className="rounded-xl border border-white/30 bg-white/70 backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]"
+                            className="rounded-xl"
                         />
-                    </Form.Item>
-
-                    <Form.Item
-                        name="code"
-                        rules={[{required: true, message: '请输入验证码'}]}
-                    >
-                        <Space.Compact style={{width: '100%'}}>
-                            <Input
-                                prefix={<SafetyCertificateOutlined className="text-gray-400"/>}
-                                placeholder="验证码"
-                                size="large"
-                                className="rounded-l-xl flex-1 border border-white/30 bg-white/70 backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]"
-                            />
-                            <Button
-                                size="large"
-                                htmlType="button"
-                                onClick={onSendCode}
-                                disabled={countdown > Date.now() || isSendingCode} // 添加 isSendingCode 条件
-                                loading={isSendingCode} // 添加 loading 状态
-                                className="rounded-r-xl bg-gradient-to-br from-blue-400 to-blue-500 text-white border-0 shadow-[0_4px_12px_rgba(59,130,246,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.5),inset_0_2px_4px_rgba(255,255,255,0.4)]"
-                            >
-                                {countdown > Date.now() ? (
-                                    <Countdown
-                                        value={countdown}
-                                        format="s秒后重试"
-                                        onFinish={() => setCountdown(0)}
-                                    />
-                                ) : '发送验证码'}
-                            </Button>
-                        </Space.Compact>
                     </Form.Item>
 
                     <Form.Item
@@ -184,30 +150,30 @@ export default function SignupPage() {
                             prefix={<LockOutlined className="text-gray-400"/>}
                             placeholder="密码"
                             size="large"
-                            className="rounded-xl border border-white/30 bg-white/70 backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]"
+                            className="rounded-xl"
                         />
                     </Form.Item>
 
                     <Form.Item
-                        name="confirm"
-                        dependencies={['password']}
-                        rules={[
-                            {required: true, message: '请确认密码'},
-                            ({getFieldValue}) => ({
-                                validator(_, value) {
-                                    if (!value || getFieldValue('password') === value) {
-                                        return Promise.resolve();
-                                    }
-                                    return Promise.reject(new Error('两次输入的密码不一致'));
-                                },
-                            }),
-                        ]}
+                        name="code"
+                        rules={[{required: true, message: '请输入验证码'}]}
                     >
-                        <Input.Password
-                            prefix={<LockOutlined className="text-gray-400"/>}
-                            placeholder="确认密码"
+                        <Input
+                            prefix={<SafetyCertificateOutlined className="text-gray-400"/>}
+                            placeholder="验证码"
                             size="large"
-                            className="rounded-xl border border-white/30 bg-white/70 backdrop-blur-sm shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]"
+                            className="rounded-xl"
+                            suffix={
+                                <Button
+                                    onClick={handleSendCode}
+                                    disabled={!!countdown || isSendingCode}
+                                    loading={isSendingCode}
+                                    size="small"
+                                    className="rounded-lg"
+                                >
+                                    {countdown ? <Countdown value={countdown} format="ss" onFinish={() => setCountdown(0)}/> : '发送'}
+                                </Button>
+                            }
                         />
                     </Form.Item>
 
@@ -215,20 +181,22 @@ export default function SignupPage() {
                         <Button
                             type="primary"
                             htmlType="submit"
-                            size="large"
                             loading={isLoading}
-                            className="w-full rounded-xl bg-gradient-to-br from-blue-400 to-blue-500 text-white border-0 shadow-[0_4px_12px_rgba(59,130,246,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)] hover:shadow-[0_8px_24px_rgba(59,130,246,0.5),inset_0_2px_4px_rgba(255,255,255,0.4)] hover:scale-105 hover:-translate-y-0.5 transition-all duration-300 transform active:scale-95"
+                            size="large"
+                            className="w-full rounded-xl bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 border-0"
                         >
                             注册
                         </Button>
                     </Form.Item>
                 </Form>
 
-                <div className="text-center mt-6">
-                    <Text type="secondary" className="!text-gray-600">已有账户？</Text>{' '}
-                    <Link href="/login">
-                        立即登录
-                    </Link>
+                <div className="text-center mt-4">
+                    <Space>
+                        <Text type="secondary">已有账户?</Text>
+                        <Link href="/login" className="text-orange-500 hover:text-orange-600 font-medium">
+                            立即登录
+                        </Link>
+                    </Space>
                 </div>
             </Card>
         </div>

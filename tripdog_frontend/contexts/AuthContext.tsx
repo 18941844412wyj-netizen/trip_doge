@@ -31,7 +31,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
         try {
             const response = await userApi.getInfo();
             console.log('检查用户状态响应:', response);
-            if (response.success) {
+            if (response.code === 200) {
                 console.log('设置用户状态:', response.data);
                 setUser(response.data);
             } else {
@@ -51,10 +51,10 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
     const login = async (email: string, password: string) => {
         try {
-            setIsLoading(true);
+            //setIsLoading(true);
             const response = await userApi.login({email, password});
 
-            if (response.code === 0) {
+            if (response.code === 200) {
                 setUser(response.data);
                 return {success: true, message: '登录成功'};
             } else {
@@ -64,7 +64,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
             console.error('登录失败:', error);
             return {success: false, message: '登录失败，请稍后重试'};
         } finally {
-            setIsLoading(false);
+            //setIsLoading(false);
         }
     };
 
@@ -135,5 +135,5 @@ export function useAuth() {
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
-    return context;
+    return context; // {user: {}} as AuthContextType; //
 }
