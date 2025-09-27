@@ -8,12 +8,14 @@ import {Sparkles} from 'lucide-react';
 import {useChatStore} from '@/stores/chatStore';
 import VoiceChat from '@/components/chat/VoiceChat';
 import {motion} from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
+import {useAuth} from '@/contexts/AuthContext';
+import Image from "next/image";
+import {Character} from "@/types";
 
 export default function ChatPage() {
     const router = useRouter();
     const {currentCharacter} = useChatStore();
-    const { user, isLoading } = useAuth();
+    const {user, isLoading} = useAuth();
     const [showWelcome, setShowWelcome] = useState(true);
 
     // 检查用户是否已登录
@@ -35,7 +37,7 @@ export default function ChatPage() {
     if (isLoading || !user) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <Spin size="large" />
+                <Spin size="large"/>
             </div>
         );
     }
@@ -59,6 +61,18 @@ export default function ChatPage() {
         );
     }
 
+    // 将RoleInfoVO转换为Character类型
+    const character: Character = {
+        id: currentCharacter.id.toString(),
+        name: currentCharacter.name,
+        avatar: '🤖', // 默认头像，可以根据需要进行调整
+        description: currentCharacter.description || '',
+        systemPrompt: currentCharacter.roleSetting || '',
+        voiceId: 'default', // 默认语音ID
+        primaryColor: 'blue', // 默认主色调
+        bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' // 默认背景渐变
+    };
+
     return (
         <div className="relative">
             {/* 欢迎动画 */}
@@ -71,7 +85,9 @@ export default function ChatPage() {
                 >
                     <div className="text-center">
                         <div className="text-8xl mb-4 animate-bounce">
-                            {currentCharacter.avatar}
+                            {currentCharacter.avatarUrl && (
+                                <Image src={currentCharacter.avatarUrl || '/images/avatar.png'}
+                                       alt={currentCharacter.name}/>)}
                         </div>
                         <h2 className="text-3xl font-bold text-orange-600 font-comic mb-2">
                             {currentCharacter.name}
@@ -83,7 +99,7 @@ export default function ChatPage() {
             )}
 
             {/* 聊天主体 */}
-            <VoiceChat character={currentCharacter}/>
+            <VoiceChat character={character}/>
         </div>
     );
 }

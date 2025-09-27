@@ -15,7 +15,7 @@ export default function Setting() {
             await logout();
             message.success('登出成功');
             router.push('/login');
-        } catch (error) {
+        } catch {
             message.error('登出失败');
         }
     };
