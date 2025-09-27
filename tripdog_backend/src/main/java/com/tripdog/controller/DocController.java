@@ -5,11 +5,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import com.tripdog.common.Result;
 import com.tripdog.common.utils.FileUploadUtils;
@@ -39,12 +43,21 @@ import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.load
 @RestController
 @RequestMapping("/doc")
 @RequiredArgsConstructor
+@Tag(name = "文档管理", description = "文档上传、解析和向量化相关接口")
 public class DocController {
     final EmbeddingStoreIngestor ingestor;
     final MinioClient minioClient;
     final MinioConfig minioConfig;
 
     @PostMapping("/parse")
+    @Operation(summary = "文档上传并解析",
+              description = "上传文件到MinIO存储，然后解析文档内容并创建向量嵌入用于AI检索")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "文档上传并解析成功"),
+        @ApiResponse(responseCode = "10001", description = "参数错误"),
+        @ApiResponse(responseCode = "10105", description = "用户未登录"),
+        @ApiResponse(responseCode = "10000", description = "系统异常")
+    })
     public Result<String> upload(UploadDTO uploadDTO, HttpSession session) {
         UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
         ThreadLocalUtils.set(ROLE_ID, uploadDTO.getRoleId());

@@ -10,7 +10,7 @@ import com.tripdog.model.entity.RoleDO;
 import com.tripdog.model.vo.RoleInfoVO;
 import com.tripdog.model.vo.RoleDetailVO;
 import com.tripdog.service.RoleService;
-import com.tripdog.util.RoleConfigParser;
+import com.tripdog.common.utils.RoleConfigParser;
 
 import lombok.RequiredArgsConstructor;
 

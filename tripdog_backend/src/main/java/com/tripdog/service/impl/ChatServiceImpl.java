@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.tripdog.ai.AssistantService;
-import com.tripdog.ai.CustomerChatMemoryProvider;
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.RoleDO;
@@ -14,9 +13,9 @@ import com.tripdog.model.dto.ChatReqDTO;
 import com.tripdog.service.ChatService;
 import com.tripdog.mapper.ChatHistoryMapper;
 import com.tripdog.mapper.RoleMapper;
-import com.tripdog.util.RoleConfigParser;
+import com.tripdog.common.utils.RoleConfigParser;
 
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class ChatServiceImpl implements ChatService {
-    private final StreamingChatLanguageModel chatLanguageModel;
+    private final StreamingChatModel chatLanguageModel;
     private final ConversationServiceImpl conversationServiceImpl;
     private final ChatHistoryMapper chatHistoryMapper;
     private final RoleMapper roleMapper;

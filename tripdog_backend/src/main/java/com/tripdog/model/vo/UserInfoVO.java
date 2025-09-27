@@ -27,10 +27,4 @@ public class UserInfoVO {
      * 头像URL
      */
     private String avatarUrl;
-
-    /**
-     * 状态：1-激活，0-禁用
-     */
-    private Integer status;
-
 }

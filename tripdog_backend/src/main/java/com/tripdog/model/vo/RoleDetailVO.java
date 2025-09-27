@@ -36,10 +36,6 @@ public class RoleDetailVO {
      */
     private String description;
 
-    /**
-     * 系统提示词
-     */
-    private String systemPrompt;
 
     /**
      * 性格特征
@@ -50,36 +46,6 @@ public class RoleDetailVO {
      * 专长领域
      */
     private String[] specialties;
-
-    /**
-     * 沟通风格
-     */
-    private String communicationStyle;
-
-    /**
-     * 代表表情符号
-     */
-    private String emoji;
-
-    /**
-     * 常用口头禅
-     */
-    private String[] catchphrases;
-
-    /**
-     * AI模型参数 - temperature
-     */
-    private Double temperature;
-
-    /**
-     * AI模型参数 - max_tokens
-     */
-    private Integer maxTokens;
-
-    /**
-     * AI模型参数 - top_p
-     */
-    private Double topP;
 
     /**
      * 排序顺序
