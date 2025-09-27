@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 步骤 1: 调用 DashScope TTS API，不使用 SSE，获取音频 URL
-        const dashScopeResponse = await fetch('https://dashscope.aliyuncs.com/api/v1/services/audio/tts', {
+        const dashScopeResponse = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,

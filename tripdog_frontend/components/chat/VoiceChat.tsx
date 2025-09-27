@@ -1,7 +1,7 @@
 "use client"
 
 import React, {useState, useCallback, useRef, useEffect} from 'react';
-import {useOpenAITTS, useSpeechRecognition} from '@lobehub/tts/react';
+import {useSpeechRecognition} from '@lobehub/tts/react';
 import {Tooltip, Spin, App, Drawer, Button} from 'antd';
 import {
     Mic,
@@ -20,6 +20,7 @@ import {useRouter} from 'next/navigation';
 import {RoleInfoVO} from "@/types";
 import Image from "next/image";
 import {getToken} from '@/services/api'
+import {useQwenTTSStream} from "@/services/useQwenTTSStream";
 
 // 消息类型
 interface Message {
@@ -99,16 +100,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
         isGlobalLoading: isQwenTTSLoading,
         start: startQwenTTS,
         error: qwenTTSError
-    } = useOpenAITTS('', {
-        api: {
-            OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-            OPENAI_PROXY_URL: process.env.NEXT_PUBLIC_OPENAI_PROXY_URL
-        },
-        options:{
-            voice: 'alloy',
-            model: 'tts-1',
-        }
-    });
+    } = useQwenTTSStream('', {});
 
     // 监听通义千问 TTS 错误
     useEffect(() => {
@@ -118,7 +110,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
     }, [message, qwenTTSError]);
 
     // 添加一个 ref 来跟踪 TTS 是否已经为当前响应触发过
-    const ttsTriggeredRef = useRef<{[key: string]: boolean}>({});
+    const ttsTriggeredRef = useRef<{ [key: string]: boolean }>({});
 
     // 获取当前使用的 TTS 状态
     const getCurrentTTSState = useCallback(() => {
@@ -133,7 +125,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
     // 当AI响应完成时触发TTS
     useEffect(() => {
         const {isTTSLoading, setTTSText, startTTS} = getCurrentTTSState();
-        
+
         // 只有在不是流式传输且有内容时才触发TTS
         if (!isStreaming && currentAIResponse && autoPlay && !isTTSLoading) {
             // 使用响应内容作为键，避免重复触发
