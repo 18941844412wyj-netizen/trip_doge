@@ -1,13 +1,15 @@
-import {useState, useRef, useCallback} from 'react';
+import {useState, useRef, useCallback, useEffect} from 'react';
 
-// 通义千问实时语音合成 Hook
+// 通义千问语音合成 Hook (非实时版本)
 export const useQwenTTS = (initialText = '', options: {
     voice?: string;
     model?: string;
+    language_type?: string;
 } = {}) => {
     const {
         voice = 'Cherry',
-        model = 'qwen3-tts-flash-realtime'
+        model = 'qwen3-tts-flash',
+        language_type = 'Chinese'
     } = options;
 
     const [isGlobalLoading, setIsGlobalLoading] = useState(false);
@@ -15,64 +17,16 @@ export const useQwenTTS = (initialText = '', options: {
     const [error, setError] = useState<Error | null>(null);
 
     const audioContextRef = useRef<AudioContext | null>(null);
-    const websocketRef = useRef<WebSocket | null>(null);
-    const audioQueueRef = useRef<Array<{ audio: Int16Array, sampleRate: number }>>([]);
-    const isProcessingRef = useRef(false);
     const textRef = useRef(initialText);
+    const sourceRef = useRef<AudioBufferSourceNode | null>(null);
 
     // 创建音频上下文
     const createAudioContext = async () => {
         if (!audioContextRef.current) {
-            audioContextRef.current = new (window.AudioContext || window.AudioContext)();
+            audioContextRef.current = new (window.AudioContext || (window).AudioContext)();
         }
         return audioContextRef.current;
     };
-
-    // 播放音频数据
-    const playAudio = async (audioData: Int16Array, sampleRate: number) => {
-        if (!audioContextRef.current) return;
-
-        try {
-            // 将 Int16Array 转换为 Float32Array
-            const floatArray = new Float32Array(audioData.length);
-            for (let i = 0; i < audioData.length; i++) {
-                floatArray[i] = audioData[i] / 32768;
-            }
-
-            // 创建音频缓冲区
-            const audioBuffer = audioContextRef.current.createBuffer(1, floatArray.length, sampleRate);
-            audioBuffer.getChannelData(0).set(floatArray);
-
-            // 播放音频
-            const source = audioContextRef.current.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(audioContextRef.current.destination);
-            source.start();
-
-            // 等待音频播放完成
-            return new Promise<void>((resolve) => {
-                source.onended = () => resolve();
-            });
-        } catch (err) {
-            console.error('播放音频时出错:', err);
-        }
-    };
-
-    // 处理音频队列
-    const processAudioQueue = useCallback(async () => {
-        if (isProcessingRef.current || audioQueueRef.current.length === 0) {
-            return;
-        }
-
-        isProcessingRef.current = true;
-
-        while (audioQueueRef.current.length > 0) {
-            const {audio, sampleRate} = audioQueueRef.current.shift()!;
-            await playAudio(audio, sampleRate);
-        }
-
-        isProcessingRef.current = false;
-    }, [])
 
     // 设置要合成的文本
     const setText = useCallback((text: string) => {
@@ -81,131 +35,91 @@ export const useQwenTTS = (initialText = '', options: {
 
     // 开始语音合成
     const start = useCallback(async () => {
-        if (!textRef.current) return;
+        if (!textRef.current) {
+            setError(new Error('请输入要合成的文本'));
+            return;
+        }
 
         setIsGlobalLoading(true);
         setIsPlaying(true);
         setError(null);
-        audioQueueRef.current = [];
 
         try {
-            // 创建音频上下文
-            await createAudioContext();
+            // 调用后端API获取语音
+            const response = await fetch('/api/qwen-tts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text: textRef.current,
+                    voice: voice,
+                    model: model,
+                    language_type: language_type
+                })
+            });
 
-            // 获取 API Key
-            const apiKey = process.env.NEXT_PUBLIC_BAILIAN_API_KEY;
-            if (!apiKey) {
-                throw new Error('未找到 API Key，请设置 NEXT_PUBLIC_BAILIAN_API_KEY 环境变量');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
 
-            // 构建 WebSocket URL
-            const wsUrl = `wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=${model}`;
+            const arrayBuffer = await response.arrayBuffer();
 
-            // 创建 WebSocket 连接
-            websocketRef.current = new WebSocket(wsUrl);
+            // 检查是否有音频数据
+            if (arrayBuffer.byteLength === 0) {
+                throw new Error('Received empty audio data');
+            }
 
-            // 设置请求头
-            websocketRef.current.onopen = () => {
-                if (websocketRef.current) {
-                    websocketRef.current.send(JSON.stringify({
-                        type: "session.update",
-                        session: {
-                            voice: voice,
-                            response_format: "pcm",
-                            sample_rate: 24000
-                        }
-                    }));
+            // 创建新的音频上下文
+            const audioContext = await createAudioContext();
 
-                    // 发送文本
-                    websocketRef.current.send(JSON.stringify({
-                        type: "input.append",
-                        text: textRef.current
-                    }));
+            // 解码WAV音频数据
+            let audioBuffer: AudioBuffer;
+            try {
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            } catch (decodeError) {
+                console.error('Audio decoding failed:', decodeError);
+                // 尝试创建一个短的静音缓冲区作为后备
+                audioBuffer = audioContext.createBuffer(1, 1, 22050);
+                setError(new Error('音频解码失败，播放静音'));
+            }
 
-                    websocketRef.current.send(JSON.stringify({
-                        type: "input.commit"
-                    }));
-                }
-            };
+            // 播放音频
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            source.start();
 
-            // 处理消息
-            websocketRef.current.onmessage = async (event) => {
-                try {
-                    const data = JSON.parse(event.data);
+            // 保存引用以便停止播放
+            sourceRef.current = source;
 
-                    switch (data.type) {
-                        case "response.audio.delta":
-                            if (data.delta && data.delta.audio && data.delta.sample_rate) {
-                                // 解码 Base64 音频数据
-                                const binaryString = atob(data.delta.audio);
-                                const bytes = new Uint8Array(binaryString.length);
-                                for (let i = 0; i < binaryString.length; i++) {
-                                    bytes[i] = binaryString.charCodeAt(i);
-                                }
-
-                                // 转换为 Int16Array
-                                const audioData = new Int16Array(bytes.buffer);
-                                const sampleRate = data.delta.sample_rate;
-
-                                // 添加到播放队列
-                                audioQueueRef.current.push({audio: audioData, sampleRate});
-                                await processAudioQueue();
-                            }
-                            break;
-
-                        case "response.done":
-                            // 等待所有音频播放完成
-                            const checkQueue = setInterval(() => {
-                                if (audioQueueRef.current.length === 0 && !isProcessingRef.current) {
-                                    clearInterval(checkQueue);
-                                    setIsPlaying(false);
-                                    setIsGlobalLoading(false);
-                                }
-                            }, 100);
-                            break;
-
-                        case "error":
-                            throw new Error(data.error?.message || '语音合成出错');
-                    }
-                } catch (err) {
-                    console.error('处理 WebSocket 消息时出错:', err);
-                    setError(err as Error);
-                    setIsPlaying(false);
-                    setIsGlobalLoading(false);
-                }
-            };
-
-            // 处理错误
-            websocketRef.current.onerror = (error) => {
-                console.error('WebSocket 错误:', error);
-                setError(new Error('WebSocket 连接错误'));
+            // 监听播放完成事件
+            source.onended = () => {
                 setIsPlaying(false);
                 setIsGlobalLoading(false);
+                sourceRef.current = null;
             };
-
-            // 处理连接关闭
-            websocketRef.current.onclose = () => {
-                setIsPlaying(false);
-                setIsGlobalLoading(false);
-            };
-
         } catch (err) {
-            console.error('启动语音合成时出错:', err);
+            console.error('语音合成出错:', err);
             setError(err as Error);
             setIsPlaying(false);
             setIsGlobalLoading(false);
         }
-    }, [model, voice, processAudioQueue]);
+    }, [model, voice, language_type]);
 
     // 停止语音合成
     const stop = useCallback(() => {
-        if (websocketRef.current) {
-            websocketRef.current.close();
-            websocketRef.current = null;
+        if (sourceRef.current) {
+            sourceRef.current.stop();
+            sourceRef.current = null;
+        }
+        
+        if (audioContextRef.current) {
+            audioContextRef.current.close();
+            audioContextRef.current = null;
         }
 
-        audioQueueRef.current = [];
-        isProcessingRef.current = false;
         setIsPlaying(false);
         setIsGlobalLoading(false);
     }, []);
@@ -213,11 +127,14 @@ export const useQwenTTS = (initialText = '', options: {
     // 清理资源
     const cleanup = useCallback(() => {
         stop();
-        if (audioContextRef.current) {
-            audioContextRef.current.close();
-            audioContextRef.current = null;
-        }
     }, [stop]);
+
+    // 组件卸载时清理
+    useEffect(() => {
+        return () => {
+            cleanup();
+        };
+    }, [cleanup]);
 
     return {
         setText,

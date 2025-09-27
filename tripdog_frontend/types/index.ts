@@ -35,6 +35,12 @@ export interface UserInfoVO {
     avatarUrl?: string;
 }
 
+export interface LoginResponseData {
+    userInfo: UserInfoVO;
+    tokenType: string;
+    token: string;
+}
+
 export interface RoleInfoVO {
     id: number;
     code: string;
