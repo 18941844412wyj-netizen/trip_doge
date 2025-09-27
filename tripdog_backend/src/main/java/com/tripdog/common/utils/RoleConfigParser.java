@@ -1,4 +1,4 @@
-package com.tripdog.util;
+package com.tripdog.common.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

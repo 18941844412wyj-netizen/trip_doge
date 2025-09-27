@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.tripdog.ai.assistant.CompressAssistant;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import lombok.RequiredArgsConstructor;
 
@@ -16,12 +16,12 @@ import lombok.RequiredArgsConstructor;
 @Configuration
 @RequiredArgsConstructor
 public class CompressAssistantConfig {
-    private final ChatLanguageModel chatLangModel;
+    private final ChatModel chatLangModel;
 
     @Bean
     CompressAssistant compressAssistant() {
         return AiServices.builder(CompressAssistant.class)
-            .chatLanguageModel(chatLangModel)
+            .chatModel(chatLangModel)
             .build();
     }
 }

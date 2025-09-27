@@ -1,23 +1,24 @@
 package com.tripdog.ai;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.tripdog.ai.assistant.ChatAssistant;
 import com.tripdog.ai.embedding.RetrieverFactory;
+import com.tripdog.ai.mcp.McpClientFactory;
 
-import dev.langchain4j.memory.ChatMemory;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.mcp.McpToolProvider;
+import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.mcp.client.transport.McpTransport;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.injector.DefaultContentInjector;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import lombok.RequiredArgsConstructor;
+import static com.tripdog.ai.mcp.McpConstants.WEB_SEARCH;
 import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 
 /**
@@ -28,9 +29,10 @@ import static com.tripdog.common.Constants.INJECT_TEMPLATE;
 @Configuration
 @RequiredArgsConstructor
 public class AssistantService {
-    final StreamingChatLanguageModel chatLanguageModel;
+    final StreamingChatModel chatLanguageModel;
     final RetrieverFactory retrieverFactory;
     final CustomerChatMemoryProvider chatMemoryProvider;
+    final McpClientFactory mcpClientFactory;
 
     public ChatAssistant getAssistant(Long roleId, Long userId) {
         RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
@@ -40,11 +42,19 @@ public class AssistantService {
                 .build())
             .build();
 
+        // todo 接入mcp
+        McpClient mcpClient = mcpClientFactory.getMcpClient(WEB_SEARCH);
+        McpToolProvider toolProvider = McpToolProvider.builder()
+            .mcpClients(mcpClient)
+            .build();
+
         return AiServices.builder(ChatAssistant.class)
-            .streamingChatLanguageModel(chatLanguageModel)
+            .streamingChatModel(chatLanguageModel)
             .retrievalAugmentor(retrievalAugmentor)
             .chatMemoryProvider(chatMemoryProvider)
+            // .toolProvider(toolProvider)
             .build();
+
     }
 
 }
