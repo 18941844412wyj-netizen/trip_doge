@@ -6,6 +6,7 @@ import {useAuth} from '@/contexts';
 import {Button, Form, Input, Card, Typography, Space, App} from 'antd';
 import {MailOutlined, LockOutlined, UserOutlined, SafetyCertificateOutlined} from '@ant-design/icons';
 import Link from 'next/link';
+import ModalSliderCaptcha from '@/components/ModalSliderCaptcha';
 
 const {Title, Text} = Typography;
 
@@ -47,6 +48,7 @@ export default function SignupPage() {
     const [error, setError] = useState('');
     const [countdown, setCountdown] = useState(0);
     const [isSendingCode, setIsSendingCode] = useState(false);
+    const [showCaptcha, setShowCaptcha] = useState(false); // 控制滑动验证码弹窗显示
 
     // 如果用户已经登录，重定向到聊天页面
     useEffect(() => {
@@ -76,8 +78,18 @@ export default function SignupPage() {
             return;
         }
 
+        // 显示滑动验证码
+        setShowCaptcha(true);
+    };
+
+    // 滑动验证码验证通过后的回调
+    const handleCaptchaSuccess = async () => {
+        // 关闭滑动验证码弹窗
+        setShowCaptcha(false);
+        
         try {
             setIsSendingCode(true);
+            const email = form.getFieldValue('email');
             const result = await sendEmailCode(email);
             if (result.success) {
                 message.success('验证码已发送，请查收邮箱');
@@ -199,6 +211,16 @@ export default function SignupPage() {
                     </Space>
                 </div>
             </Card>
+
+            {/* 滑动验证码弹窗 */}
+            <ModalSliderCaptcha
+                open={showCaptcha}
+                onCancel={() => setShowCaptcha(false)}
+                onVerify={async () => {
+                    handleCaptchaSuccess();
+                    return Promise.resolve(true);
+                }}
+            />
         </div>
     );
 }

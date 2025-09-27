@@ -62,7 +62,7 @@ export default function Characters() {
 
   if (error) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
+      <div className="p-6 max-w-4xl w-full mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
           <p className="text-red-700">加载失败: {error}</p>
           <button 
@@ -77,7 +77,7 @@ export default function Characters() {
   }
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <div className="p-4  w-full mx-auto">
       {/* 搜索框 - 粘土风格 */}
       <div className="mb-6">
         <div className="relative">

@@ -24,7 +24,6 @@ const {Header, Sider, Content} = Layout;
 export default function RoutesLayout({children}: {
     children: React.ReactNode;
 }) {
-    const [collapsed] = useState(false);
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
     const pathname = usePathname();
     const {user, isLoading} = useAuth();
@@ -134,11 +133,9 @@ export default function RoutesLayout({children}: {
             >
                 <div className="p-4 text-center">
                     <div className="text-4xl mb-2">🐕</div>
-                    {!collapsed && (
-                        <h2 className="text-xl font-bold text-orange-600">
-                            TripDoge
-                        </h2>
-                    )}
+                    <h2 className="text-xl font-bold text-orange-600">
+                        TripDoge
+                    </h2>
                 </div>
                 <SideMenu/>
             </Sider>
