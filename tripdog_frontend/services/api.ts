@@ -3,10 +3,12 @@ import {
     BaseResponse,
     UserInfoVO,
     RoleInfoVO,
+    RoleDetailVO,
     ChatHistoryDO,
     RegisterRequest,
     LoginRequest,
     SendEmailRequest,
+    ChatRequest,
 } from '@/types';
 
 // API基础配置
@@ -68,7 +70,7 @@ export const userApi = {
     // 获取当前用户信息
     getInfo: (): Promise<BaseResponse<UserInfoVO>> => {
         return apiRequest('/user/info', {
-            method: 'GET',
+            method: 'POST',
         });
     },
 };
@@ -81,10 +83,29 @@ export const rolesApi = {
             method: 'POST',
         });
     },
+    
+    // 获取角色详情
+    detail: (roleId: number): Promise<BaseResponse<RoleDetailVO>> => {
+        return apiRequest(`/roles/${roleId}/detail`, {
+            method: 'POST',
+        });
+    },
 };
 
 // 聊天相关API
 export const chatApi = {
+    // 与AI角色对话
+    chat: (roleId: number, data: ChatRequest): Promise<Response> => {
+        return fetch(`${API_BASE_URL}/chat/${roleId}`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+    },
+
     // 重置会话上下文
     reset: (roleId: number): Promise<BaseResponse<null>> => {
         return apiRequest(`/chat/${roleId}/reset`, {
@@ -97,5 +118,26 @@ export const chatApi = {
         return apiRequest(`/chat/${roleId}/history`, {
             method: 'POST',
         });
+    },
+};
+
+// 文档相关API
+export const docApi = {
+    // 文档上传并解析
+    upload: async (file: File, roleId?: number): Promise<BaseResponse<string>> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        if (roleId !== undefined) {
+            formData.append('roleId', roleId.toString());
+        }
+
+        const response = await fetch(`${API_BASE_URL}/doc/parse`, {
+            method: 'POST',
+            credentials: 'include',
+            body: formData,
+        });
+
+        return response.json();
     },
 };

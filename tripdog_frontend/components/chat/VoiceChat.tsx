@@ -2,7 +2,7 @@
 
 import React, {useState, useCallback, useRef, useEffect} from 'react';
 import {useEdgeSpeech, useSpeechRecognition} from '@lobehub/tts/react';
-import {Tooltip, message, Spin} from 'antd';
+import {Tooltip, Spin, App} from 'antd';
 import {
     Mic,
     MicOff,
@@ -17,6 +17,7 @@ import './VoiceChat.css'
 import {Character} from "@/types";
 import {useQwenTTS} from '@/services/qwenTTS';
 
+
 // 消息类型
 interface Message {
     id: string;
@@ -28,6 +29,7 @@ interface Message {
 
 export default function VoiceChat({character}: { character: Character }) {
     // 状态管理
+    const {message} = App.useApp();
     const [messages, setMessages] = useState<Message[]>([]);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
     const [autoPlay, setAutoPlay] = useState(true);
@@ -132,7 +134,7 @@ export default function VoiceChat({character}: { character: Character }) {
         if (qwenTTSError) {
             message.error(`通义千问 TTS 错误: ${qwenTTSError.message}`);
         }
-    }, [qwenTTSError]);
+    }, [message, qwenTTSError]);
 
     const needPlayWordRef = useRef('');
 
@@ -293,9 +295,13 @@ export default function VoiceChat({character}: { character: Character }) {
 
             return finalResponse;
 
-        } catch {
-            console.error('AI回答错误:');
-            return finalResponse || '抱歉，连接出现问题，请稍后重试。';
+        } catch (error) {
+            if (error instanceof Error && error.name !== 'AbortError') {
+                console.error('AI回答错误:', error);
+                return finalResponse || '抱歉，连接出现问题，请稍后重试。';
+            }
+            // 如果是用户主动中断，不显示错误信息
+            return finalResponse;
         } finally {
             setIsStreaming(false);
         }
@@ -356,7 +362,7 @@ export default function VoiceChat({character}: { character: Character }) {
         } finally {
             setIsProcessingAI(false);
         }
-    }, [getAIResponseStream]);
+    }, [getAIResponseStream, message]);
 
     // 处理发送消息
     const handleSendMessage = async () => {
@@ -467,7 +473,7 @@ export default function VoiceChat({character}: { character: Character }) {
                                 <select
                                     value={selectedEdgeVoice}
                                     onChange={(e) => setSelectedEdgeVoice(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_2px_4px_rgba(255,255,255,0.9)] transition-all duration-300"
                                 >
                                     {edgeVoiceOptions.map((voice) => (
                                         <option key={voice.value} value={voice.value}>
@@ -484,7 +490,7 @@ export default function VoiceChat({character}: { character: Character }) {
                                 <select
                                     value={selectedQwenVoice}
                                     onChange={(e) => setSelectedQwenVoice(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="bg-white/70 backdrop-blur-sm border border-white/30 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.15),inset_0_2px_4px_rgba(255,255,255,0.9)] transition-all duration-300"
                                 >
                                     {qwenVoiceOptions.map((voice) => (
                                         <option key={voice.value} value={voice.value}>
@@ -584,7 +590,8 @@ export default function VoiceChat({character}: { character: Character }) {
                                     ) : (
                                         <div className='flex flex-col justify-center items-center'>
                                             <Mic size={32} className="text-white drop-shadow-sm"/>
-                                            <span className="text-white text-xs font-bold drop-shadow-sm">点击说话</span>
+                                            <span
+                                                className="text-white text-xs font-bold drop-shadow-sm">点击说话</span>
                                         </div>
                                     )}
                                 </div>

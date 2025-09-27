@@ -65,7 +65,7 @@ export default function ChatPage() {
     const character: Character = {
         id: currentCharacter.id.toString(),
         name: currentCharacter.name,
-        avatar: '🤖', // 默认头像，可以根据需要进行调整
+        avatar: currentCharacter.avatarUrl || '🤖', // 使用角色头像URL或默认头像
         description: currentCharacter.description || '',
         systemPrompt: currentCharacter.roleSetting || '',
         voiceId: 'default', // 默认语音ID
@@ -85,9 +85,11 @@ export default function ChatPage() {
                 >
                     <div className="text-center">
                         <div className="text-8xl mb-4 animate-bounce">
-                            {currentCharacter.avatarUrl && (
-                                <Image src={currentCharacter.avatarUrl || '/images/avatar.png'}
-                                       alt={currentCharacter.name}/>)}
+                            {currentCharacter.avatarUrl ? (
+                                <Image src={currentCharacter.avatarUrl} width={120} height={120} alt={currentCharacter.name}/>
+                            ) : (
+                                <span>🤖</span>
+                            )}
                         </div>
                         <h2 className="text-3xl font-bold text-orange-600 font-comic mb-2">
                             {currentCharacter.name}

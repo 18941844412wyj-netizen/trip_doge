@@ -11,6 +11,7 @@ import {
     History as HistoryIcon,
     Settings,
     Menu as MenuIcon,
+    FileText
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import './layout.css'
@@ -57,6 +58,11 @@ export default function RoutesLayout({
             key: '/chat',
             icon: <MessageCircle className="w-4 h-4"/>,
             label: <Link href="/chat">开始对话</Link>,
+        },
+        {
+            key: '/files',
+            icon: <FileText className="w-4 h-4"/>,
+            label: <Link href="/files">文件管理</Link>,
         },
         {
             key: '/history',
