@@ -134,6 +134,9 @@ public class UserController {
     @PostMapping("/info")
     public Result<UserInfoVO> getCurrentUser(HttpSession session) {
         UserInfoVO loginUser = (UserInfoVO) session.getAttribute(Constants.USER_SESSION_KEY);
+        if(loginUser == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         return Result.success(loginUser);
     }
 

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.alibaba.dashscope.exception.ApiException;
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.model.dto.ChatReqDTO;
@@ -51,6 +52,9 @@ public class ChatController {
                             HttpSession session) {
 
         UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+        if(userInfoVO == null) {
+            throw new RuntimeException(ErrorCode.USER_NOT_LOGIN.getMessage());
+        }
         Long userId = userInfoVO.getId();
 
         return chatService.chat(roleId, userId, req);
@@ -69,6 +73,9 @@ public class ChatController {
     @PostMapping("/{roleId}/reset")
     public Result<Void> resetContext(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId, HttpSession session) {
         UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+        if(userInfoVO == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         Long userId = userInfoVO.getId();
         ConversationDO conversation = conversationServiceImpl.findConversationByUserAndRole(userId, roleId);
         if (conversation == null) {
@@ -92,6 +99,9 @@ public class ChatController {
     @PostMapping("/{roleId}/history")
     public Result<List<ChatHistoryDO>> getHistory(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId, HttpSession session) {
         UserInfoVO userInfo = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+        if(userInfo == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         ConversationDO conversation = conversationServiceImpl.findConversationByUserAndRole(userInfo.getId(), roleId);
         if (conversation == null) {
             return Result.success(List.of());

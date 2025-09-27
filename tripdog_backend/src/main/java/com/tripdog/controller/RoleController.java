@@ -46,7 +46,9 @@ public class RoleController {
     @PostMapping("/list")
     public Result<List<RoleInfoVO>> getActiveRoles(HttpSession session) {
         UserInfoVO userInfo = (UserInfoVO) session.getAttribute(Constants.USER_SESSION_KEY);
-
+        if(userInfo == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         // 检查所有角色是否已创建好对话
         List<RoleInfoVO> roleInfoList = roleService.getRoleInfoList();
         roleInfoList.forEach(roleInfoVO -> {

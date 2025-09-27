@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.common.utils.FileUploadUtils;
 import com.tripdog.common.utils.ThreadLocalUtils;
@@ -60,6 +61,9 @@ public class DocController {
     })
     public Result<String> upload(UploadDTO uploadDTO, HttpSession session) {
         UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+        if(userInfoVO == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         ThreadLocalUtils.set(ROLE_ID, uploadDTO.getRoleId());
         ThreadLocalUtils.set(USER_ID, userInfoVO.getId());
 
