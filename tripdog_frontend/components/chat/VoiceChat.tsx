@@ -165,7 +165,7 @@ export default function VoiceChat({character}: { character: Character }) {
                 setTTSText(needPlayWordRef.current + pendingTTSText);
                 needPlayWordRef.current = ''
             } else {
-                setPendingTTSText(pendingTTSText);
+                setTTSText(pendingTTSText);
             }
             const timer = setTimeout(() => {
                 try {
@@ -250,7 +250,6 @@ export default function VoiceChat({character}: { character: Character }) {
             }
 
             let buffer = '';
-            let fullResponse = '';
 
             while (true) {
                 const {done, value} = await reader.read();
@@ -261,7 +260,6 @@ export default function VoiceChat({character}: { character: Character }) {
                 const {done: streamDone, content} = parseSSEStream(buffer);
 
                 if (content) {
-                    fullResponse += content;
                     finalResponse += content
                     // 实时更新当前AI响应
                     setCurrentAIResponse(finalResponse);
@@ -276,22 +274,10 @@ export default function VoiceChat({character}: { character: Character }) {
                         return newMessages;
                     });
 
-                    // const {
-                    //     hasSentenceEnding,
-                    //     firstSentence,
-                    //     remainingText
-                    // } = splitAtFirstValidSentenceEnding(fullResponse)
-                    //
-                    // console.log({
-                    //     hasSentenceEnding,
-                    //     firstSentence,
-                    //     remainingText
-                    // })
-                    // if (hasSentenceEnding && autoPlay && !isTTSLoading) {
-                    //     console.log('自动播放')
-                    //     setPendingTTSText(firstSentence);
-                    //     fullResponse = remainingText
-                    // }
+                    // 实时进行TTS播放 - 仅在有内容且自动播放开启时触发
+                    if (autoPlay && content.trim()) {
+                        setPendingTTSText(prev => prev + content);
+                    }
                 }
 
                 if (streamDone) {
@@ -305,9 +291,6 @@ export default function VoiceChat({character}: { character: Character }) {
                 }
             }
 
-            if (fullResponse && autoPlay && !isTTSLoading) {
-                setPendingTTSText(finalResponse);
-            }
             return finalResponse;
 
         } catch {
@@ -316,7 +299,7 @@ export default function VoiceChat({character}: { character: Character }) {
         } finally {
             setIsStreaming(false);
         }
-    }, [autoPlay, character, isTTSLoading]);
+    }, [autoPlay, character.id]);
 
     // 处理消息（流式发送和播放）
     const handleProcessMessage = useCallback(async (text: string) => {
@@ -349,6 +332,9 @@ export default function VoiceChat({character}: { character: Character }) {
                 isStreaming: true,
             };
             setMessages(prev => [...prev, assistantMessage]);
+
+            // 清空待播放文本队列
+            setPendingTTSText('');
 
             // 获取流式AI回答
             const finalResponse = await getAIResponseStream(text, assistantMessageId);
