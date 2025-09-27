@@ -9,7 +9,7 @@ import {
     Volume2,
     VolumeX,
     User,
-    X, RotateCw, History
+    X, RotateCw, History, Brain, Compass
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import './VoiceChat.css'
@@ -463,7 +463,7 @@ export default function VoiceChat({character}: { character: Character }) {
                                 }
                                             hover:scale-105 hover:-translate-y-0.5`}
                             >
-                                {ttsService === 'qwen' ? '千' : 'E'}
+                                {ttsService === 'qwen' ? <Brain size={18}/> : <Compass size={18}/>}
                             </button>
                         </Tooltip>
 
