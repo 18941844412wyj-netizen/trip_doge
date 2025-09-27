@@ -4,25 +4,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.model.vo.UserInfoVO;
+import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.utils.TokenUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import static com.tripdog.common.Constants.USER_SESSION_KEY;
 
 /**
  * 登录拦截器
+ * 基于Redis token验证用户登录状态
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class LoginInterceptor implements HandlerInterceptor {
-    // 基础过期时间（秒），例如 30 分钟
-    private static final int BASE_TIMEOUT = 30 * 60;
-    // 触发续期的阈值（秒），例如 10 分钟
-    private static final int RENEW_THRESHOLD = 10 * 60;
+
+    private final UserSessionService userSessionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -42,24 +43,34 @@ public class LoginInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 检查用户是否已登录
-        HttpSession session = request.getSession(false);
-        if (session == null) {
+        // 从请求中提取token
+        String token = TokenUtils.extractToken(request);
+        if (token == null) {
+            log.debug("请求中未找到token: {}", requestURI);
             writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
             return false;
         }
 
-        UserInfoVO loginUser = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+        // 验证token格式
+        if (!TokenUtils.isValidTokenFormat(token)) {
+            log.debug("token格式无效: {}", token);
+            writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
+            return false;
+        }
+
+        // 获取用户Session信息
+        UserInfoVO loginUser = userSessionService.getSession(token);
         if (loginUser == null) {
+            log.debug("token对应的用户session不存在或已过期: {}", token);
             writeErrorResponse(response, ErrorCode.USER_NOT_LOGIN);
             return false;
         }
-
-        // Session续期逻辑：如果剩余时间少于10分钟，就续期10分钟
-        renewSessionIfNeeded(session);
 
         // 将用户信息放入请求属性中，便于Controller使用
         request.setAttribute("loginUser", loginUser);
+        request.setAttribute("userToken", token);
+
+        log.debug("用户身份验证成功: {} ({})", loginUser.getNickname(), loginUser.getId());
         return true;
     }
 
@@ -84,33 +95,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         return false;
     }
 
-    /**
-     * Session续期逻辑
-     * 如果 session 剩余时间小于阈值，则重置为 BASE_TIMEOUT
-     */
-    private void renewSessionIfNeeded(HttpSession session) {
-        try {
-            if (session == null) {
-                return;
-            }
 
-            int maxInactiveInterval = session.getMaxInactiveInterval();
-            long lastAccessedTime = session.getLastAccessedTime();
-            long currentTime = System.currentTimeMillis();
-
-            // 已经过去的时间（秒）
-            long elapsedTime = (currentTime - lastAccessedTime) / 1000;
-            // 剩余时间（秒）
-            long remainingTime = maxInactiveInterval - elapsedTime;
-
-            if (remainingTime > 0 && remainingTime < RENEW_THRESHOLD) {
-                session.setMaxInactiveInterval(BASE_TIMEOUT);
-                log.debug("Session续期成功：剩余{}秒，重置为{}秒", remainingTime, BASE_TIMEOUT);
-            }
-        } catch (Exception e) {
-            log.warn("Session续期失败: {}", e.getMessage());
-        }
-    }
 
     /**
      * 写入错误响应

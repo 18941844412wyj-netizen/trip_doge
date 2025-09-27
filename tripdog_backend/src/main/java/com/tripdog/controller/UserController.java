@@ -1,6 +1,5 @@
 package com.tripdog.controller;
 
-import com.tripdog.common.Constants;
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.model.dto.EmailCodeDTO;
@@ -10,8 +9,9 @@ import com.tripdog.model.vo.EmailCodeVO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.EmailService;
 import com.tripdog.service.UserService;
+import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.utils.TokenUtils;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,7 +20,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 用户控制器
@@ -33,8 +34,7 @@ public class UserController {
 
     private final UserService userService;
     private final EmailService emailService;
-
-    private static final String USER_SESSION_KEY = "loginUser";
+    private final UserSessionService userSessionService;
 
 
     /**
@@ -60,7 +60,7 @@ public class UserController {
     /**
      * 用户登录
      */
-    @Operation(summary = "用户登录", description = "用户登录系统，登录成功后会在Session中保存用户信息")
+    @Operation(summary = "用户登录", description = "用户登录系统，登录成功后返回访问token")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "登录成功"),
             @ApiResponse(responseCode = "10100", description = "用户不存在"),
@@ -68,15 +68,20 @@ public class UserController {
             @ApiResponse(responseCode = "10104", description = "密码错误")
     })
     @PostMapping("/login")
-    public Result<UserInfoVO> login(@RequestBody @Validated UserLoginDTO loginDTO, HttpServletRequest request) {
+    public Result<Map<String, Object>> login(@RequestBody @Validated UserLoginDTO loginDTO, HttpServletRequest request) {
         try {
             UserInfoVO userInfoVO = userService.login(loginDTO);
 
-            // 将用户信息保存到session中
-            HttpSession session = request.getSession();
-            session.setAttribute(USER_SESSION_KEY, userInfoVO);
+            // 创建用户Session并生成token
+            String token = userSessionService.createSession(userInfoVO);
 
-            return Result.success(userInfoVO);
+            // 构建返回数据
+            Map<String, Object> data = new HashMap<>();
+            data.put("userInfo", userInfoVO);
+            data.put("token", token);
+            data.put("tokenType", "Bearer");
+
+            return Result.success(data);
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
@@ -109,15 +114,17 @@ public class UserController {
     /**
      * 用户登出
      */
-    @Operation(summary = "用户登出", description = "用户退出登录，清除Session信息")
+    @Operation(summary = "用户登出", description = "用户退出登录，清除登录状态")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "登出成功")
     })
     @PostMapping("/logout")
     public Result<Void> logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
+        // 从请求中提取token
+        String token = TokenUtils.extractToken(request);
+        if (token != null) {
+            // 删除用户Session
+            userSessionService.removeSession(token);
         }
         return Result.success("退出登录成功");
     }
@@ -132,11 +139,19 @@ public class UserController {
             @ApiResponse(responseCode = "10106", description = "会话已过期")
     })
     @PostMapping("/info")
-    public Result<UserInfoVO> getCurrentUser(HttpSession session) {
-        UserInfoVO loginUser = (UserInfoVO) session.getAttribute(Constants.USER_SESSION_KEY);
-        if(loginUser == null) {
+    public Result<UserInfoVO> getCurrentUser(HttpServletRequest request) {
+        // 从请求中提取token
+        String token = TokenUtils.extractToken(request);
+        if (token == null) {
             return Result.error(ErrorCode.USER_NOT_LOGIN);
         }
+
+        // 直接从Redis获取用户Session信息（会自动续期）
+        UserInfoVO loginUser = userSessionService.getSession(token);
+        if (loginUser == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
+
         return Result.success(loginUser);
     }
 
