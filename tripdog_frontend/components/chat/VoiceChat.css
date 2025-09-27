@@ -1,5 +1,5 @@
 .voice-root-min-h-screen{
-    min-height: 100vh;
+    height: 100vh;
 }
 
 .voice-start-min-h-screen{
@@ -37,11 +37,11 @@
 
 @media screen and (max-width: 768px){
     .voice-root-min-h-screen{
-        min-height: calc(100vh - 64px);
+        height: calc(100vh - 64px);
     }
 
     .voice-start-min-h-screen{
-        min-height: calc(100vh - 64px);
+        height: calc(100vh - 64px);
     }
 
     .voice-chat-min-h-screen{

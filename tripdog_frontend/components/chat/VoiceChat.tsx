@@ -15,6 +15,7 @@ import ReactMarkdown from 'react-markdown';
 import './VoiceChat.css'
 
 import {Character} from "@/types";
+import {useQwenTTS} from '@/services/qwenTTS';
 
 // 消息类型
 interface Message {
@@ -25,7 +26,7 @@ interface Message {
     isStreaming?: boolean; // 添加流式标记
 }
 
-const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) => {
+export default function VoiceChat({character}: { character: Character }) {
     // 状态管理
     const [messages, setMessages] = useState<Message[]>([]);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
@@ -34,10 +35,13 @@ const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) 
     const [isStreaming, setIsStreaming] = useState(false); // 添加流式状态
     const [showHistory, setShowHistory] = useState(false); // 添加历史记录显示状态
     const [inputValue, setInputValue] = useState(''); // 添加输入框状态
+    const [ttsService, setTtsService] = useState<'edge' | 'qwen'>('edge'); // 添加 TTS 服务选择状态
     // const audioRef = useRef<HTMLAudioElement>(null!);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null); // 用于中断流式请求
     const [pendingTTSText, setPendingTTSText] = useState('');
+    const [selectedEdgeVoice, setSelectedEdgeVoice] = useState('zh-CN-YunxiaNeural');
+    const [selectedQwenVoice, setSelectedQwenVoice] = useState('Cherry');
 
     // 自动滚动到底部
     const scrollToBottom = () => {
@@ -68,25 +72,96 @@ const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) 
         },
     });
 
-    // 文字转语音 (TTS)
+    // Edge TTS (原有实现)
     const {
-        setText: setTTSText,
+        setText: setEdgeTTSText,
         isGlobalLoading: isTTSLoading,
-        start: startTTS,
-        canStart: canStartTTS,
+        start: startEdgeTTS,
+        canStart: canStartEdgeTTS,
     } = useEdgeSpeech('', {
         options: {
-            voice: 'zh-CN-YunxiaNeural', // 可以改为其他声音: nova, shimmer, echo, fable, onyx
-            //model: 'tts-1',
+            voice: selectedEdgeVoice,
         },
     });
 
+    // 通义千问 TTS
+    const {
+        setText: setQwenTTSText,
+        isGlobalLoading: isQwenTTSLoading,
+        start: startQwenTTS,
+        error: qwenTTSError
+    } = useQwenTTS('', {
+        voice: selectedQwenVoice,
+        model: 'qwen3-tts-flash-realtime'
+    });
+
+    // 定义可用的语音选项
+    const edgeVoiceOptions = [
+        {value: 'zh-CN-XiaochenNeural', label: '晓晨 (女)'},
+        {value: 'zh-CN-XiaohanNeural', label: '晓涵 (女)'},
+        {value: 'zh-CN-XiaomengNeural', label: '晓梦 (女)'},
+        {value: 'zh-CN-XiaomoNeural', label: '晓墨 (女)'},
+        {value: 'zh-CN-XiaoqiuNeural', label: '晓秋 (女)'},
+        {value: 'zh-CN-XiaoruiNeural', label: '晓睿 (女)'},
+        {value: 'zh-CN-XiaoshuangNeural', label: '晓双 (女)'},
+        {value: 'zh-CN-XiaoxiaoNeural', label: '晓晓 (女)'},
+        {value: 'zh-CN-XiaoxuanNeural', label: '晓萱 (女)'},
+        {value: 'zh-CN-XiaoyanNeural', label: '晓颜 (女)'},
+        {value: 'zh-CN-XiaoyiNeural', label: '晓艺 (女)'},
+        {value: 'zh-CN-XiaoyouNeural', label: '晓悠 (女)'},
+        {value: 'zh-CN-XiaozhenNeural', label: '晓珍 (女)'},
+        {value: 'zh-CN-YunfengNeural', label: '云枫 (男)'},
+        {value: 'zh-CN-YunhaoNeural', label: '云浩 (男)'},
+        {value: 'zh-CN-YunjianNeural', label: '云健 (男)'},
+        {value: 'zh-CN-YunxiaNeural', label: '云夏 (男)'},
+        {value: 'zh-CN-YunxiNeural', label: '云希 (男)'},
+        {value: 'zh-CN-YunyangNeural', label: '云扬 (男)'},
+        {value: 'zh-CN-YunyeNeural', label: '云野 (男)'},
+        {value: 'zh-CN-YunzeNeural', label: '云泽 (男)'},
+    ];
+
+    const qwenVoiceOptions = [
+        {value: 'Cherry', label: 'Cherry (女)'},
+        {value: 'Serena', label: 'Serena (女)'},
+        {value: 'Ethan', label: 'Ethan (男)'},
+        {value: 'Chelsie', label: 'Chelsie (女)'},
+    ];
+
+    // 监听通义千问 TTS 错误
+    useEffect(() => {
+        if (qwenTTSError) {
+            message.error(`通义千问 TTS 错误: ${qwenTTSError.message}`);
+        }
+    }, [qwenTTSError]);
+
     const needPlayWordRef = useRef('');
 
+    // 获取当前使用的 TTS 状态
+    const getCurrentTTSState = useCallback(() => {
+        if (ttsService === 'qwen') {
+            return {
+                isTTSLoading: isQwenTTSLoading,
+                setTTSText: setQwenTTSText,
+                startTTS: startQwenTTS,
+                selectedVoice: selectedQwenVoice
+            };
+        } else {
+            return {
+                isTTSLoading: isTTSLoading,
+                setTTSText: setEdgeTTSText,
+                startTTS: startEdgeTTS,
+                canStartTTS: canStartEdgeTTS,
+                selectedVoice: selectedEdgeVoice
+            };
+        }
+    }, [ttsService, isQwenTTSLoading, setQwenTTSText, startQwenTTS, isTTSLoading, setEdgeTTSText, startEdgeTTS, canStartEdgeTTS, selectedEdgeVoice, selectedQwenVoice]);
+
     useEffect(() => {
+        const {isTTSLoading, setTTSText, startTTS} = getCurrentTTSState();
+
         if (pendingTTSText && autoPlay && !isTTSLoading) {
-            console.log('开始播放:', pendingTTSText, canStartTTS, isTTSLoading);
-            if (needPlayWordRef) {
+            console.log('开始播放:', pendingTTSText, isTTSLoading);
+            if (needPlayWordRef.current) {
                 setTTSText(needPlayWordRef.current + pendingTTSText);
                 needPlayWordRef.current = ''
             } else {
@@ -107,11 +182,10 @@ const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) 
                 clearTimeout(timer);
             };
         } else if (pendingTTSText) {
-            console.log('等待播放:', pendingTTSText, canStartTTS, isTTSLoading);
+            console.log('等待播放:', pendingTTSText, isTTSLoading);
             needPlayWordRef.current += pendingTTSText;
         }
-    }, [pendingTTSText, autoPlay, isTTSLoading, setTTSText, startTTS, canStartTTS]);
-
+    }, [pendingTTSText, autoPlay, getCurrentTTSState]);
 
     // 解析SSE流数据
     const parseSSEStream = (text: string) => {
@@ -140,59 +214,6 @@ const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) 
         }
         return {done: false, content};
     };
-
-    // function splitAtFirstValidSentenceEnding(text: string, minSentenceLength: number = 1) {
-    //     const sentenceEndingRegex = new RegExp(
-    //         // 负向后行断言 (Negative Lookbehind) - 排除非句末标点的情况
-    //         '(?<!\\.\\.)' + // 排除英文省略号 "..." 中的第二个和第三个点
-    //         '(?<![…‥])' + // 排除 Unicode 省略号 "…" (U+2026) 和 "‥" (U+2025)
-    //         '(?<!\\d\\.)' + // 排除数字中的小数点，如 "1.2"
-    //         // 排除常见英文缩写，如 "Mr."。"\\b" 确保是单词边界，避免误判如 "data.xml"
-    //         '(?<!\\b(?:Mr|Dr|Mrs|Ms|Jr|Sr|Prof|e\\.g|i\\.e|etc|vs|v|viz|cf)\\.)' +
-    //
-    //         // 匹配句末标点符号本身，允许连续的相同或不同句末标点
-    //         '[。！？.!?．]+' + // 匹配一个或多个句号、问号、感叹号、英文句号 `.`、中文全角句号 `．`
-    //
-    //         // 负向先行断言 (Negative Lookahead) - 确保标点后不紧跟字母或数字
-    //         // 这有助于区分 "word.next" (不应分割) 和 "word. Next" (应分割)
-    //         '(?![0-9a-zA-Z])'
-    //     );
-    //
-    //     const match = text.match(sentenceEndingRegex);
-    //
-    //     if (match && match.index !== undefined) {
-    //         // match[0] 包含了匹配到的完整标点符号串 (e.g., "!", "!!", "。")
-    //         // 修正 endIndex 的计算，应加上匹配到的标点长度
-    //         const endIndex = match.index + match[0].length;
-    //
-    //         const firstSentence = text.substring(0, endIndex).trim();
-    //         const remainingText = text.substring(endIndex).trim();
-    //
-    //         // 确保句子有最小长度（避免太短的片段，如仅有标点的片段）
-    //         // 这里的 minSentenceLength 现在是可配置的参数
-    //         if (firstSentence.length < minSentenceLength) {
-    //             // 如果第一个“句子”过短，则认为没有找到有效的句末进行分割
-    //             return {
-    //                 hasSentenceEnding: false,
-    //                 firstSentence: text, // 返回原文本作为一个整体
-    //                 remainingText: ""
-    //             };
-    //         }
-    //
-    //         return {
-    //             hasSentenceEnding: true,
-    //             firstSentence: firstSentence,
-    //             remainingText: remainingText
-    //         };
-    //     }
-    //
-    //     // 如果整个文本中都没有找到任何有效的句末标点
-    //     return {
-    //         hasSentenceEnding: false,
-    //         firstSentence: text,
-    //         remainingText: ""
-    //     };
-    // }
 
     // 流式获取AI回答
     const getAIResponseStream = useCallback(async (userMessage: string, messageId: string): Promise<string> => {
@@ -413,11 +434,11 @@ const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) 
     }, []);
 
     return (
-        <div className="voice-root-min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50">
+        <div className="voice-root-min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex flex-col">
             {/* 头部 */}
-            <div className='hidden md:block sticky top-0 w-full mx-auto'>
+            <div className='hidden md:block relative top-0 w-full mx-auto'>
                 <div
-                    className="flex items-center justify-between p-4 bg-orange-100/75 backdrop-blur-sm shadow-lg">
+                    className="m-2 rounded-full flex items-center justify-between p-4 backdrop-blur-sm shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]">
                     <div className="flex items-center gap-3">
                         {/* 角色头像 */}
                         <div
@@ -436,7 +457,58 @@ const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) 
                         </div>
                     </div>
 
-                    <div className='flex'>
+                    <div className='flex items-center gap-2'>
+                        {/* TTS 服务切换按钮 */}
+                        <Tooltip title={`当前使用: ${ttsService === 'qwen' ? '通义千问' : 'Edge'} TTS`}>
+                            <button
+                                onClick={() => setTtsService(ttsService === 'qwen' ? 'edge' : 'qwen')}
+                                className={`w-12 h-12 rounded-full flex items-center justify-center mr-2
+                                            transition-all duration-300 transform active:scale-95
+                                            shadow-[0_4px_12px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                                            ${ttsService === 'qwen'
+                                    ? 'bg-gradient-to-br from-green-400 to-green-500 text-white shadow-[0_4px_12px_rgba(72,187,120,0.3)]'
+                                    : 'bg-gradient-to-br from-blue-400 to-blue-500 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]'
+                                }
+                                            hover:scale-105 hover:-translate-y-0.5`}
+                            >
+                                {ttsService === 'qwen' ? '千' : 'E'}
+                            </button>
+                        </Tooltip>
+
+                        {/* Edge TTS 语音选择 */}
+                        {ttsService === 'edge' && (
+                            <div className="mr-2">
+                                <select
+                                    value={selectedEdgeVoice}
+                                    onChange={(e) => setSelectedEdgeVoice(e.target.value)}
+                                    className="bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    {edgeVoiceOptions.map((voice) => (
+                                        <option key={voice.value} value={voice.value}>
+                                            {voice.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {/* 通义千问 TTS 语音选择 */}
+                        {ttsService === 'qwen' && (
+                            <div className="mr-2">
+                                <select
+                                    value={selectedQwenVoice}
+                                    onChange={(e) => setSelectedQwenVoice(e.target.value)}
+                                    className="bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    {qwenVoiceOptions.map((voice) => (
+                                        <option key={voice.value} value={voice.value}>
+                                            {voice.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         {/* 历史记录按钮 */}
                         {/* 音量按钮 - 粘土风格 */}
                         <Tooltip title={autoPlay ? "自动播放开启" : "自动播放关闭"}>
@@ -490,132 +562,188 @@ const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) 
             </div>
 
             {/* 聊天框 */}
-            {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center voice-start-min-h-screen relative px-4">
-                    <div className="relative">
-                        {/* 脉冲动画背景 - 粘土风格 */}
-                        {isRecording && (
-                            <>
-                                <div className="absolute inset-0 bg-gradient-to-br from-red-300 to-red-400
+            <div className='flex-1'>
+                {messages.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center relative px-4">
+                        <div className="relative">
+                            {/* 脉冲动画背景 - 粘土风格 */}
+                            {isRecording && (
+                                <>
+                                    <div className="absolute inset-0 bg-gradient-to-br from-red-300 to-red-400
                              rounded-full animate-ping opacity-25
                              shadow-[0_0_20px_rgba(239,68,68,0.4)]"></div>
-                                <div className="absolute inset-0 bg-gradient-to-br from-red-300 to-red-400
+                                    <div className="absolute inset-0 bg-gradient-to-br from-red-300 to-red-400
                              rounded-full animate-ping animation-delay-200 opacity-20
                              shadow-[0_0_30px_rgba(239,68,68,0.3)]"></div>
-                            </>
-                        )}
+                                </>
+                            )}
 
-                        {/* 录音按钮 - 粘土立体效果 */}
-                        <button
-                            onClick={toggleRecording}
-                            disabled={isRecognizing || isProcessingAI || isStreaming}
-                            className={getRecordingButtonClass()}
-                        >
-                            <div className="relative z-10 text-center">
-                                {isRecognizing ? (
-                                    <div className="text-white">
-                                        <Spin size="large" className="text-white"/>
-                                    </div>
-                                ) : isRecording ? (
-                                    <div className='flex flex-col justify-center items-center'>
-                                        <MicOff size={32} className="text-white drop-shadow-sm"/>
-                                        <span
-                                            className="text-white text-xs font-bold drop-shadow-sm">{formattedTime}</span>
-                                    </div>
-                                ) : (
-                                    <div className='flex flex-col justify-center items-center'>
-                                        <Mic size={32} className="text-white drop-shadow-sm"/>
-                                        <span className="text-white text-xs font-bold drop-shadow-sm">点击说话</span>
-                                    </div>
-                                )}
+                            {/* 录音按钮 - 粘土立体效果 */}
+                            <button
+                                onClick={toggleRecording}
+                                disabled={isRecognizing || isProcessingAI || isStreaming}
+                                className={getRecordingButtonClass()}
+                            >
+                                <div className="relative z-10 text-center">
+                                    {isRecognizing ? (
+                                        <div className="text-white">
+                                            <Spin size="large" className="text-white"/>
+                                        </div>
+                                    ) : isRecording ? (
+                                        <div className='flex flex-col justify-center items-center'>
+                                            <MicOff size={32} className="text-white drop-shadow-sm"/>
+                                            <span
+                                                className="text-white text-xs font-bold drop-shadow-sm">{formattedTime}</span>
+                                        </div>
+                                    ) : (
+                                        <div className='flex flex-col justify-center items-center'>
+                                            <Mic size={32} className="text-white drop-shadow-sm"/>
+                                            <span className="text-white text-xs font-bold drop-shadow-sm">点击说话</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </button>
+                        </div>
+
+                        {/* 添加文本输入框，允许在初始状态下打字 */}
+                        {(!isProcessingAI && !isStreaming && !isRecognizing) && (<div className="mt-6 w-full max-w-md">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSendMessage();
+                                        }
+                                    }}
+                                    placeholder="输入消息..."
+                                    className="flex-1 px-4 py-3 rounded-2xl text-sm font-medium
+                                    bg-white/70 backdrop-blur-sm text-gray-800
+                                    shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
+                                    border border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-300
+                                    disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                                <button
+                                    onClick={handleSendMessage}
+                                    disabled={isProcessingAI || isStreaming || isRecognizing || !inputValue.trim()}
+                                    className={`
+                                    w-12 h-12 rounded-full flex items-center justify-center text-white
+                                    transition-all duration-300 transform active:scale-95
+                                    shadow-[0_4px_12px_rgba(147,51,234,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
+                                    hover:scale-105 hover:-translate-y-0.5
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    ${isProcessingAI || isStreaming || isRecognizing || !inputValue.trim()
+                                        ? 'bg-gradient-to-br from-gray-300 to-gray-400'
+                                        : 'bg-gradient-to-br from-purple-300 to-purple-400'
+                                    }
+                                `}
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="w-5 h-5"
+                                    >
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
                             </div>
-                        </button>
-                    </div>
+                        </div>)}
 
-                    <div className="mt-8 px-6 py-3 bg-white/60 backdrop-blur-sm rounded-2xl
+                        <div className="mt-8 px-6 py-3 bg-white/60 backdrop-blur-sm rounded-2xl
                          shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
                          border border-white/30">
-                        <p className="text-gray-600 text-center text-sm md:text-base font-medium animate-fadeIn">
-                            {(isRecognizing) || (isProcessingAI && !isStreaming) ? (recognizedText ? recognizedText : '正在倾听...') : (isProcessingAI || isStreaming ? 'AI正在思考中...' : '点击按钮开始对话，我会立即回复你 ✨')}
-                        </p>
+                            <p className="text-gray-600 text-center text-sm md:text-base font-medium animate-fadeIn">
+                                {(isRecognizing) || (isProcessingAI && !isStreaming) ? (recognizedText ? recognizedText : '正在倾听...') : (isProcessingAI || isStreaming ? 'AI正在思考中...' : '点击按钮开始对话，或在上方输入框输入文字')}
+                            </p>
+                        </div>
                     </div>
-                </div>
-            ) : (
-                <div className="space-y-4 p-4 voice-chat-min-h-screen overflow-y-scroll clay-scroll">
-                    {messages.map((msg) => (
-                        <div
-                            key={msg.id}
-                            className={`flex items-start gap-3 ${
-                                msg.role === 'user' ? 'flex-row-reverse' : ''
-                            }`}
-                        >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                ) : (
+                    <div className='h-[calc(100vh-148px)] md:h-[calc(100vh-182px)] w-full'>
+                        <div className="h-full space-y-4 p-4 overflow-y-scroll clay-scroll">
+                            {messages.map((msg) => (
+                                <div
+                                    key={msg.id}
+                                    className={`flex items-start gap-3 ${
+                                        msg.role === 'user' ? 'flex-row-reverse' : ''
+                                    }`}
+                                >
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
                                             shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)] 
                                             ${msg.role === 'user'
-                                ? 'bg-gradient-to-br from-blue-100 to-blue-200'
-                                : 'bg-gradient-to-br from-purple-100 to-purple-200'}`}>
-                                {msg.role === 'user'
-                                    ? <User size={14} className="text-blue-600"/>
-                                    : <div className="text-purple-600">{character.avatar}</div>
-                                }
-                            </div>
-                            <div className={`
+                                        ? 'bg-gradient-to-br from-blue-100 to-blue-200'
+                                        : 'bg-gradient-to-br from-purple-100 to-purple-200'}`}>
+                                        {msg.role === 'user'
+                                            ? <User size={14} className="text-blue-600"/>
+                                            : <div className="text-purple-600">{character.avatar}</div>
+                                        }
+                                    </div>
+                                    <div className={`
                   flex-1 px-4 py-3 rounded-2xl text-sm font-medium
                   shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
                   transition-all duration-200 hover:scale-[1.02]
                   ${msg.role === 'assistant'
-                                ? 'rounded-tl-lg cursor-pointer bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800'
-                                : 'rounded-br-lg bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800'
-                            }
+                                        ? 'rounded-tl-lg cursor-pointer bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800'
+                                        : 'rounded-br-lg bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800'
+                                    }
                 `}>
-                                <div className="flex items-start gap-1">
-                                    {msg.role === 'assistant' ? (
-                                        <div className='prose prose-sm max-w-none'>
-                                            <ReactMarkdown>
-                                                {msg.content || (msg.isStreaming ? '生成中...' : '')}
-                                            </ReactMarkdown>
-                                        </div>
-                                    ) : (
-                                        <p>{msg.content || (msg.isStreaming ? '生成中...' : '')}</p>
-                                    )}
+                                        <div className="flex items-start gap-1">
+                                            {msg.role === 'assistant' ? (
+                                                <div className='prose prose-sm max-w-none'>
+                                                    <ReactMarkdown>
+                                                        {msg.content || (msg.isStreaming ? '生成中...' : '')}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            ) : (
+                                                <p>{msg.content || (msg.isStreaming ? '生成中...' : '')}</p>
+                                            )}
 
-                                    {/*{msg.isStreaming && (*/}
-                                    {/*    <span className="inline-block w-2 h-4 bg-gray-600 animate-pulse rounded-full"/>*/}
-                                    {/*)}*/}
+                                            {/*{msg.isStreaming && (*/}
+                                            {/*    <span className="inline-block w-2 h-4 bg-gray-600 animate-pulse rounded-full"/>*/}
+                                            {/*)}*/}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-2 font-normal">
+                                            {new Date(msg.timestamp).toLocaleTimeString()}
+                                        </p>
+                                    </div>
+                                    <div className="w-8 h-8"></div>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2 font-normal">
-                                    {new Date(msg.timestamp).toLocaleTimeString()}
-                                </p>
-                            </div>
-                            <div className="w-8 h-8"></div>
-                        </div>
-                    ))}
-                    {(isRecognizing || (isProcessingAI && !isStreaming)) && (
-                        <div className="flex items-start gap-3 flex-row-reverse">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-                                            shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)] 
+                            ))}
+                            {(isRecognizing || (isProcessingAI && !isStreaming)) && (
+                                <div className="flex items-start gap-3 flex-row-reverse">
+                                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                                            shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)]
                                             bg-gradient-to-br from-blue-100 to-blue-200">
-                                <User size={14} className="text-blue-600"/>
-                            </div>
-                            <div className="flex-1 px-4 py-3 rounded-2xl text-sm font-medium
+                                        <User size={14} className="text-blue-600"/>
+                                    </div>
+                                    <div className="flex-1 px-4 py-3 rounded-2xl text-sm font-medium
                                           shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
                                           transition-all duration-200 hover:scale-[1.02]
                                           rounded-br-lg bg-gradient-to-br from-blue-50 to-blue-100 text-gray-800">
-                                <div className="flex items-start gap-1">
-                                    {recognizedText ? recognizedText : '正在倾听...'}
+                                        <div className="flex items-start gap-1">
+                                            {recognizedText ? recognizedText : '正在倾听...'}
+                                        </div>
+                                    </div>
+                                    <div className="w-8 h-8"></div>
                                 </div>
-                            </div>
-                            <div className="w-8 h-8"></div>
-                        </div>
-                    )}
+                            )}
 
-                    <div ref={messagesEndRef}/>
-                </div>
-            )}
+                            <div ref={messagesEndRef}/>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* 工具栏 - 聊天框 */}
-            <>{messages.length > 0 && (<div className="absolute bottom-0 mx-auto w-full bg-orange-100/75">
-                <div className="mx-auto backdrop-blur-md p-3
+            <>{messages.length > 0 && (<div className="relative bottom-0 mx-auto w-full">
+                <div className="mb-2 ml-2 mr-2 backdrop-blur-md p-3 rounded-full
                        shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]">
                     {/* 文本输入区域 */}
                     <div className="flex items-center gap-2">
@@ -803,9 +931,4 @@ const MinimalVoiceAssistant: React.FC<{ character: Character }> = ({character}) 
             )}
         </div>
     );
-};
-
-// 主应用组件保持不变
-export default function VoiceChat({character}: { character: Character }) {
-    return <MinimalVoiceAssistant character={character}/>;
 }
