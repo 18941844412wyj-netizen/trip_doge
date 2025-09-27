@@ -22,20 +22,29 @@ export function AuthProvider({children}: { children: ReactNode }) {
     const [user, setUser] = useState<UserInfoVO | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    // 初始化时从localStorage恢复用户信息
     useEffect(() => {
-        // 检查用户是否已经登录
-        checkUserStatus()
+        checkUserStatus();
     }, []);
 
     const checkUserStatus = async () => {
         try {
             const response = await userApi.getInfo();
-            if (response.code === 0) {
+            console.log('检查用户状态响应:', response);
+            if (response.success) {
+                console.log('设置用户状态:', response.data);
                 setUser(response.data);
+            } else {
+                console.log('用户未登录或会话已过期');
+                // 清除存储的用户信息
+                localStorage.removeItem('user');
             }
         } catch (error) {
             console.error('检查用户状态失败:', error);
+            // 清除存储的用户信息
+            localStorage.removeItem('user');
         } finally {
+            console.log('结束检查用户状态');
             setIsLoading(false);
         }
     };
@@ -65,7 +74,9 @@ export function AuthProvider({children}: { children: ReactNode }) {
             setUser(null);
         } catch (error) {
             console.error('登出失败:', error);
-            setUser(null); // 即使API调用失败，也清除本地用户状态
+            setUser(null);
+            // 即使API调用失败，也清除本地用户状态
+            localStorage.removeItem('user');
         }
     };
 
@@ -90,7 +101,6 @@ export function AuthProvider({children}: { children: ReactNode }) {
 
     const sendEmailCode = async (email: string) => {
         try {
-            setIsLoading(true);
             const response = await userApi.sendEmail({email});
 
             if (response.code === 0) {
@@ -101,8 +111,6 @@ export function AuthProvider({children}: { children: ReactNode }) {
         } catch (error) {
             console.error('发送验证码失败:', error);
             return {success: false, message: '发送验证码失败，请稍后重试'};
-        } finally {
-            setIsLoading(false);
         }
     };
 

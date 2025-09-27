@@ -2,6 +2,7 @@ import type {Metadata} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from '@/contexts/AuthContext';
+import { App as AntApp } from 'antd';
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -43,7 +44,9 @@ export default function RootLayout({children,}: Readonly<{
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
         <AuthProvider>
-            {children}
+            <AntApp>
+                {children}
+            </AntApp>
         </AuthProvider>
         </body>
         </html>

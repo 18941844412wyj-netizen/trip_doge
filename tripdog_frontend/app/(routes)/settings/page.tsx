@@ -1,13 +1,14 @@
 "use client";
 
-import { Button, Card, Typography, message } from 'antd';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import {Button, Card, Typography, App} from 'antd';
+import {useAuth} from '@/contexts/AuthContext';
+import {useRouter} from 'next/navigation';
 
-const { Title } = Typography;
+const {Title} = Typography;
 
 export default function Setting() {
-    const { logout, user } = useAuth();
+    const {message} = App.useApp();
+    const {logout, user} = useAuth();
     const router = useRouter();
 
     const handleLogout = async () => {
@@ -25,16 +26,16 @@ export default function Setting() {
             <div className="max-w-2xl mx-auto pt-12">
                 <Card className="shadow-xl rounded-2xl border-0 bg-white/80 backdrop-blur-sm">
                     <Title level={2} className="text-center mb-8">设置</Title>
-                    
+
                     <div className="mb-6 p-4 bg-blue-50 rounded-xl">
                         <h3 className="font-semibold text-lg mb-2">当前用户</h3>
                         <p className="text-gray-700">昵称: {user?.nickname}</p>
                         <p className="text-gray-700">邮箱: {user?.email}</p>
                     </div>
-                    
+
                     <div className="flex justify-center">
-                        <Button 
-                            type="primary" 
+                        <Button
+                            type="primary"
                             danger
                             onClick={handleLogout}
                             className="rounded-xl bg-gradient-to-r from-red-500 to-red-600 border-0"

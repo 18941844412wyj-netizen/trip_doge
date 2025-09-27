@@ -33,7 +33,6 @@ export interface UserInfoVO {
     email: string;
     nickname: string;
     avatarUrl?: string;
-    status: number;
 }
 
 export interface RoleInfoVO {
@@ -46,11 +45,23 @@ export interface RoleInfoVO {
     conversationId: string;
 }
 
+export interface RoleDetailVO {
+    id: number;
+    code: string;
+    name: string;
+    avatarUrl?: string;
+    description?: string;
+    personality?: string[];
+    specialties?: string[];
+    sortOrder?: number;
+}
+
 export interface ChatHistoryDO {
     id: number;
     conversationId: string;
     role: 'user' | 'assistant' | 'system';
     content: string;
+    enhancedContent?: string;
     createdAt: string;
 }
 
@@ -75,9 +86,16 @@ export interface ChatRequest {
     message: string;
 }
 
+export interface UploadDTO {
+    roleId?: number;
+    file?: File;
+}
+
 // API响应基础类型
 export interface BaseResponse<T> {
     code: number;
     message: string;
     data: T;
+    timestamp?: number;
+    success?: boolean;
 }

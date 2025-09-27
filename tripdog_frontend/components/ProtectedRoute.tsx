@@ -14,8 +14,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
+  console.log('ProtectedRoute - 用户状态:', { user, isLoading });
+
   useEffect(() => {
     if (!isLoading && !user) {
+      console.log('重定向到登录页面');
       router.push('/login');
     }
   }, [user, isLoading, router]);

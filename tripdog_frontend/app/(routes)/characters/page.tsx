@@ -5,15 +5,16 @@ import {useRouter} from 'next/navigation';
 import {Row, Col, Typography, Spin} from 'antd';
 import {useChatStore} from '@/stores/chatStore';
 import {motion} from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
+import {useAuth} from '@/contexts/AuthContext';
+import {useEffect} from 'react';
+import Image from "next/image";
 
 const {Title, Paragraph} = Typography;
 
 export default function CharactersPage() {
     const router = useRouter();
     const {characters, currentCharacter, setCurrentCharacter, createSession, loadCharacters} = useChatStore();
-    const { user, isLoading: authLoading } = useAuth();
+    const {user, isLoading: authLoading} = useAuth();
 
     // 加载角色列表
     useEffect(() => {
@@ -24,7 +25,7 @@ export default function CharactersPage() {
     if (authLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <Spin size="large" />
+                <Spin size="large"/>
             </div>
         );
     }
@@ -44,7 +45,7 @@ export default function CharactersPage() {
     if (characters.length === 0) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <Spin size="large" />
+                <Spin size="large"/>
             </div>
         );
     }
@@ -109,10 +110,12 @@ export default function CharactersPage() {
                                     {/* 头像容器 */}
                                     <div
                                         className="mb-6 w-24 h-24 mx-auto bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center shadow-inner">
-                                        <div
-                                            className="text-5xl group-hover:scale-110 transition-transform duration-300">
-                                            {character.avatar}
-                                        </div>
+                                        {character.avatarUrl ? (<Image src={character.avatarUrl} alt={character.name}
+                                                                       className="text-5xl group-hover:scale-110 transition-transform duration-300"/>) :
+                                            <div
+                                                className="text-5xl group-hover:scale-110 transition-transform duration-300">
+                                                {character.name[0]}
+                                            </div>}
                                     </div>
                                     {/* 角色名称 */}
                                     <Title level={4}
