@@ -1,22 +1,22 @@
 package com.tripdog.controller;
 
-import com.tripdog.common.Constants;
 import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.mapper.ConversationMapper;
 import com.tripdog.model.entity.ConversationDO;
-import com.tripdog.model.entity.RoleDO;
 import com.tripdog.model.vo.RoleInfoVO;
 import com.tripdog.model.vo.RoleDetailVO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ConversationService;
 import com.tripdog.service.RoleService;
+import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.utils.TokenUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +34,7 @@ public class RoleController {
     private final RoleService roleService;
     private final ConversationService conversationService;
     private final ConversationMapper conversationMapper;
+    private final UserSessionService userSessionService;
 
     /**
      * 获取用户与角色对话列表
@@ -44,9 +45,17 @@ public class RoleController {
             @ApiResponse(responseCode = "10105", description = "用户未登录")
     })
     @PostMapping("/list")
-    public Result<List<RoleInfoVO>> getActiveRoles(HttpSession session) {
-        UserInfoVO userInfo = (UserInfoVO) session.getAttribute(Constants.USER_SESSION_KEY);
-
+    public Result<List<RoleInfoVO>> getActiveRoles(HttpServletRequest request) {
+        // 从请求中提取token并获取用户信息
+        String token = TokenUtils.extractToken(request);
+        if (token == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
+        
+        UserInfoVO userInfo = userSessionService.getSession(token);
+        if(userInfo == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         // 检查所有角色是否已创建好对话
         List<RoleInfoVO> roleInfoList = roleService.getRoleInfoList();
         roleInfoList.forEach(roleInfoVO -> {

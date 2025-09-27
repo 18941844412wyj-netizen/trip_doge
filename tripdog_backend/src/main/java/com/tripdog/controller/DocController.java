@@ -1,9 +1,6 @@
 package com.tripdog.controller;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.tripdog.common.ErrorCode;
 import com.tripdog.common.Result;
 import com.tripdog.common.utils.FileUploadUtils;
 import com.tripdog.common.utils.ThreadLocalUtils;
@@ -22,17 +20,18 @@ import com.tripdog.config.MinioConfig;
 import com.tripdog.model.dto.FileUploadDTO;
 import com.tripdog.model.dto.UploadDTO;
 import com.tripdog.model.vo.UserInfoVO;
+import com.tripdog.service.impl.UserSessionService;
+import com.tripdog.utils.TokenUtils;
 import io.minio.MinioClient;
 
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentParser;
 import dev.langchain4j.data.document.parser.apache.tika.ApacheTikaDocumentParser;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import static com.tripdog.common.Constants.ROLE_ID;
 import static com.tripdog.common.Constants.USER_ID;
-import static com.tripdog.common.Constants.USER_SESSION_KEY;
 import static dev.langchain4j.data.document.loader.FileSystemDocumentLoader.loadDocument;
 
 /**
@@ -48,6 +47,7 @@ public class DocController {
     final EmbeddingStoreIngestor ingestor;
     final MinioClient minioClient;
     final MinioConfig minioConfig;
+    final UserSessionService userSessionService;
 
     @PostMapping("/parse")
     @Operation(summary = "文档上传并解析",
@@ -58,8 +58,17 @@ public class DocController {
         @ApiResponse(responseCode = "10105", description = "用户未登录"),
         @ApiResponse(responseCode = "10000", description = "系统异常")
     })
-    public Result<String> upload(UploadDTO uploadDTO, HttpSession session) {
-        UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+    public Result<String> upload(UploadDTO uploadDTO, HttpServletRequest request) {
+        // 从请求中提取token并获取用户信息
+        String token = TokenUtils.extractToken(request);
+        if (token == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
+        
+        UserInfoVO userInfoVO = userSessionService.getSession(token);
+        if(userInfoVO == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         ThreadLocalUtils.set(ROLE_ID, uploadDTO.getRoleId());
         ThreadLocalUtils.set(USER_ID, userInfoVO.getId());
 

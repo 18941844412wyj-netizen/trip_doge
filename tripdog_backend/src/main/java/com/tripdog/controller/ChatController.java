@@ -12,15 +12,16 @@ import com.tripdog.model.entity.ConversationDO;
 import com.tripdog.model.entity.ChatHistoryDO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ChatService;
+import com.tripdog.service.impl.UserSessionService;
 import com.tripdog.service.impl.ConversationServiceImpl;
+import com.tripdog.utils.TokenUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import static com.tripdog.common.Constants.USER_SESSION_KEY;
 
 /**
  * 聊天控制器
@@ -34,6 +35,7 @@ public class ChatController {
 
     private final ChatService chatService;
     private final ConversationServiceImpl conversationServiceImpl;
+    private final UserSessionService userSessionService;
 
     /**
      * 与指定角色聊天
@@ -48,9 +50,18 @@ public class ChatController {
     @PostMapping(value = "/{roleId}", produces = "text/event-stream;charset=UTF-8")
     public SseEmitter chat(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId,
                           @RequestBody ChatReqDTO req,
-                            HttpSession session) {
+                          HttpServletRequest request) {
 
-        UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+        // 从请求中提取token并获取用户信息
+        String token = TokenUtils.extractToken(request);
+        if (token == null) {
+            throw new RuntimeException(ErrorCode.USER_NOT_LOGIN.getMessage());
+        }
+        
+        UserInfoVO userInfoVO = userSessionService.getSession(token);
+        if(userInfoVO == null) {
+            throw new RuntimeException(ErrorCode.USER_NOT_LOGIN.getMessage());
+        }
         Long userId = userInfoVO.getId();
 
         return chatService.chat(roleId, userId, req);
@@ -67,8 +78,17 @@ public class ChatController {
             @ApiResponse(responseCode = "10105", description = "用户未登录")
     })
     @PostMapping("/{roleId}/reset")
-    public Result<Void> resetContext(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId, HttpSession session) {
-        UserInfoVO userInfoVO = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+    public Result<Void> resetContext(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId, HttpServletRequest request) {
+        // 从请求中提取token并获取用户信息
+        String token = TokenUtils.extractToken(request);
+        if (token == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
+        
+        UserInfoVO userInfoVO = userSessionService.getSession(token);
+        if(userInfoVO == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         Long userId = userInfoVO.getId();
         ConversationDO conversation = conversationServiceImpl.findConversationByUserAndRole(userId, roleId);
         if (conversation == null) {
@@ -90,8 +110,17 @@ public class ChatController {
             @ApiResponse(responseCode = "10105", description = "用户未登录")
     })
     @PostMapping("/{roleId}/history")
-    public Result<List<ChatHistoryDO>> getHistory(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId, HttpSession session) {
-        UserInfoVO userInfo = (UserInfoVO) session.getAttribute(USER_SESSION_KEY);
+    public Result<List<ChatHistoryDO>> getHistory(@Parameter(description = "角色ID", required = true) @PathVariable Long roleId, HttpServletRequest request) {
+        // 从请求中提取token并获取用户信息
+        String token = TokenUtils.extractToken(request);
+        if (token == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
+        
+        UserInfoVO userInfo = userSessionService.getSession(token);
+        if(userInfo == null) {
+            return Result.error(ErrorCode.USER_NOT_LOGIN);
+        }
         ConversationDO conversation = conversationServiceImpl.findConversationByUserAndRole(userInfo.getId(), roleId);
         if (conversation == null) {
             return Result.success(List.of());
