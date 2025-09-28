@@ -24,7 +24,7 @@ const {Title, Text} = Typography;
 const {Search} = Input;
 
 interface UploadedFile extends DocVO {
-    status: 'uploading' | 'done' | 'error';
+    status: 'uploading' | 'done' | 'error' | 'existing';
     percent?: number;
 }
 
@@ -121,7 +121,7 @@ export default function FilesPage() {
             if (response.code === 200) {
                 const filesWithStatus = response.data.map(file => ({
                     ...file,
-                    status: 'h' as const
+                    status: 'existing' as const
                 }));
                 setFileList(filesWithStatus);
             } else {
@@ -426,7 +426,7 @@ export default function FilesPage() {
                                                 </div>
 
                                                 <div className="col-span-1 flex items-center justify-end space-x-2">
-                                                    {item.status === 'h' && (
+                                                    {item.status === 'existing' && (
                                                         <>
                                                             <Button
                                                                 type="text"
@@ -441,6 +441,10 @@ export default function FilesPage() {
                                                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl"
                                                             />
                                                         </>
+                                                    )}
+                                                    {item.status === 'uploading' && item.percent !== undefined && (
+                                                        <Progress percent={item.percent} size="small"
+                                                                  className="mt-1"/>
                                                     )}
                                                     {item.status === 'error' && (
                                                         <div
