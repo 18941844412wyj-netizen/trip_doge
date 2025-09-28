@@ -2,7 +2,7 @@ package com.tripdog.service.impl;
 
 import com.tripdog.common.RedisService;
 import com.tripdog.model.vo.UserInfoVO;
-import com.tripdog.utils.TokenUtils;
+import com.tripdog.common.utils.TokenUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

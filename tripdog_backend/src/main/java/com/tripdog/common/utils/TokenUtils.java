@@ -1,4 +1,4 @@
-package com.tripdog.utils;
+package com.tripdog.common.utils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;

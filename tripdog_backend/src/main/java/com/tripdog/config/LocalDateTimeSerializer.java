@@ -3,7 +3,7 @@ package com.tripdog.config;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.tripdog.utils.DateTimeUtils;
+import com.tripdog.common.utils.DateTimeUtils;
 
 import java.io.IOException;
 import java.time.LocalDateTime;

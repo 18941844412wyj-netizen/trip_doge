@@ -10,7 +10,7 @@ import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.EmailService;
 import com.tripdog.service.UserService;
 import com.tripdog.service.impl.UserSessionService;
-import com.tripdog.utils.TokenUtils;
+import com.tripdog.common.utils.TokenUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
