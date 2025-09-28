@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/3783cb68-baa6-44ae-9c09-b70cb10938cb
 
 
 ### 1.1 演示概览
-- **时长**：约2分钟
+- **时长**：2分钟20秒
 - **目标**：展示产品成果
 
 ### 1.2 分镜脚本
