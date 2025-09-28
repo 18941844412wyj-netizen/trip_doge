@@ -36,13 +36,7 @@ git clone https://github.com/18941844412wyj-netizen/trip_doge.git
 cd trip_doge
 ```
 
-2. 启动依赖服务（推荐使用 Docker Compose）
-
-```powershell
-docker-compose up -d
-```
-
-3. 启动后端
+2. 启动后端
 
 ```powershell
 cd tripdog_backend
@@ -95,7 +89,7 @@ CORS_ALLOWED_ORIGINS=http://xxx:3000,http://xxx:7979# 允许的前端域名
 ```
 
 
-4. 启动前端
+3. 启动前端
 
 ```powershell
 cd ..\tripdog_frontend
@@ -106,6 +100,24 @@ npm run dev
 打开浏览器访问 http://localhost:3000
 
 ---
+
+## 生产环境部署
+
+### Docker Compose
+
+```powershell
+docker-compose up -d
+```
+
+### Dockerfile
+
+到各文件夹运行Dockerfile:
+- `tripdog_backend/Dockerfile`
+- `tripdog_frontend/Dockerfile`
+
+### Zeabur
+
+使用 [](./docs/project.yaml) 即可
 
 ## 环境与配置
 

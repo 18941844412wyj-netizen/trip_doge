@@ -1,0 +1,378 @@
+# yaml-language-server: $schema=https://schema.zeabur.app/template.json
+apiVersion: zeabur.com/v1
+kind: Template
+metadata:
+    name: TripDoge
+spec:
+    description: TripDoge, 一个永不离开、持续成长、高度个性化的AI宠物伙伴
+    icon: https://cdn.zeabur.com/marketplace/mysql.svg
+    services:
+        - name: mysql
+          icon: https://cdn.zeabur.com/marketplace/mysql.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: mysql:8.0
+            ports:
+                - id: database
+                  port: 3306
+                  type: TCP
+            volumes:
+                - id: data
+                  dir: /var/lib/mysql
+            instructions:
+                - title: Command to connect to your MySQL
+                  content: mysqlsh --sql --host=${PORT_FORWARDED_HOSTNAME} --port=${DATABASE_PORT_FORWARDED_PORT} --user=${MYSQL_USERNAME} --password=${MYSQL_PASSWORD} --schema=${MYSQL_DATABASE}
+                - title: MySQL username
+                  content: ${MYSQL_USERNAME}
+                - title: MySQL password
+                  content: ${MYSQL_PASSWORD}
+                - title: MySQL database
+                  content: ${MYSQL_DATABASE}
+                - title: MySQL host
+                  content: ${PORT_FORWARDED_HOSTNAME}
+                - title: MySQL port
+                  content: ${DATABASE_PORT_FORWARDED_PORT}
+            env:
+                MYSQL_DATABASE:
+                    default: zeabur
+                    expose: true
+                MYSQL_HOST:
+                    default: ${CONTAINER_HOSTNAME}
+                    expose: true
+                MYSQL_PASSWORD:
+                    default: ${MYSQL_ROOT_PASSWORD}
+                    expose: true
+                MYSQL_PORT:
+                    default: ${DATABASE_PORT}
+                    expose: true
+                MYSQL_ROOT_PASSWORD:
+                    default: ${PASSWORD}
+                    expose: false
+                MYSQL_USERNAME:
+                    default: root
+                    expose: true
+            configs:
+                - path: /etc/my.cnf
+                  template: |
+                    [mysqld]
+                    default-authentication-plugin=mysql_native_password
+                    host-cache-size=0
+                    skip-name-resolve
+                    datadir=/var/lib/mysql
+                    socket=/var/run/mysqld/mysqld.sock
+                    secure-file-priv=/var/lib/mysql-files
+                    user=mysql
+                    max_allowed_packet=10M
+                    performance_schema=off
+
+                    pid-file=/var/run/mysqld/mysqld.pid
+                    [client]
+                    socket=/var/run/mysqld/mysqld.sock
+
+                    !includedir /etc/mysql/conf.d/
+                  permission: null
+                  envsubst: null
+            portForwarding:
+                enabled: true
+        - name: minio
+          icon: https://cdn.zeabur.com/marketplace/minio.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: quay.io/minio/minio:latest
+                command:
+                    - /bin/sh
+                args:
+                    - -c
+                    - |
+                      minio server /data --console-address :9090 &
+                      MINIO_PID=$!
+                      while ! curl -s http://localhost:9000/minio/health/live; do
+                        echo 'Waiting for MinIO to start...'
+                        sleep 1
+                      done
+                      sleep 5
+                      mc alias set myminio http://localhost:9000 $MINIO_USERNAME $MINIO_PASSWORD
+                      echo "Creating bucket '$MINIO_DEFAULT_BUCKET'"
+                      mc mb myminio/$MINIO_DEFAULT_BUCKET
+                      wait $MINIO_PID
+            ports:
+                - id: web
+                  port: 9000
+                  type: HTTP
+                - id: console
+                  port: 9090
+                  type: HTTP
+            volumes:
+                - id: data
+                  dir: /data
+            instructions:
+                - title: Go to MinIO Console
+                  content: ${MINIO_CONSOLE_URL}
+                - title: Default Username (S3 Access Key ID)
+                  content: ${MINIO_USERNAME}
+                - title: Default Password (S3 Secret Access Key)
+                  content: ${MINIO_PASSWORD}
+                - title: Default Bucket
+                  content: ${MINIO_DEFAULT_BUCKET}
+            env:
+                MINIO_BROWSER_REDIRECT:
+                    default: "false"
+                    expose: false
+                MINIO_CONSOLE_URL:
+                    default: ${ZEABUR_CONSOLE_URL}
+                    expose: true
+                MINIO_DEFAULT_BUCKET:
+                    default: zeabur
+                    expose: false
+                MINIO_PASSWORD:
+                    default: ${MINIO_ROOT_PASSWORD}
+                    expose: true
+                MINIO_ROOT_PASSWORD:
+                    default: ${PASSWORD}
+                    expose: false
+                MINIO_ROOT_USER:
+                    default: minio
+                    expose: false
+                MINIO_USERNAME:
+                    default: ${MINIO_ROOT_USER}
+                    expose: true
+            configs: []
+            portForwarding:
+                enabled: false
+        - name: postgresql
+          icon: https://cdn.zeabur.com/marketplace/postgresql.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: pgvector/pgvector:pg17
+            ports:
+                - id: database
+                  port: 5432
+                  type: TCP
+            volumes:
+                - id: data
+                  dir: /var/lib/postgresql/data
+            instructions:
+                - title: Connection String
+                  content: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}
+                - title: PostgreSQL Connect Command
+                  content: psql "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}"
+                - title: PostgreSQL username
+                  content: ${POSTGRES_USERNAME}
+                - title: PostgresSQL password
+                  content: ${POSTGRES_PASSWORD}
+                - title: PostgresSQL database
+                  content: ${POSTGRES_DATABASE}
+                - title: PostgreSQL host
+                  content: ${PORT_FORWARDED_HOSTNAME}
+                - title: PostgreSQL port
+                  content: ${DATABASE_PORT_FORWARDED_PORT}
+            env:
+                PGDATA:
+                    default: /var/lib/postgresql/data/pgdata
+                    expose: false
+                POSTGRES_CONNECTION_STRING:
+                    default: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+                    expose: true
+                POSTGRES_DATABASE:
+                    default: ${POSTGRES_DB}
+                    expose: true
+                POSTGRES_DB:
+                    default: zeabur
+                    expose: false
+                POSTGRES_HOST:
+                    default: ${CONTAINER_HOSTNAME}
+                    expose: true
+                POSTGRES_PASSWORD:
+                    default: ${PASSWORD}
+                    expose: true
+                POSTGRES_PORT:
+                    default: ${DATABASE_PORT}
+                    expose: true
+                POSTGRES_URI:
+                    default: ${POSTGRES_CONNECTION_STRING}
+                    expose: true
+                POSTGRES_USER:
+                    default: root
+                    expose: false
+                POSTGRES_USERNAME:
+                    default: ${POSTGRES_USER}
+                    expose: true
+            configs: []
+            portForwarding:
+                enabled: true
+        - name: trip-doge
+          icon: https://service-icons.zeabur.com/git/docker/default.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                source: GITHUB
+                repo: 1063477621
+                branch: main
+                rootDirectory: /tripdog_backend
+            ports:
+                - id: port-7979
+                  port: 7979
+                  type: HTTP
+                - id: web
+                  port: 8080
+                  type: HTTP
+            env:
+                DASHSCOPE_API_KEY:
+                    default: 
+                    expose: false
+                MAIL_HOST:
+                    default: 
+                    expose: false
+                MAIL_PASSWORD:
+                    default: 
+                    expose: false
+                MAIL_PORT:
+                    default: 
+                    expose: false
+                MAIL_USERNAME:
+                    default: 
+                    expose: false
+                MINIO_AK:
+                    default: minio
+                    expose: false
+                MINIO_ENDPOINT:
+                    default: 
+                    expose: false
+                MINIO_SK:
+                    default: 
+                    expose: false
+                MYSQL_DATABASE:
+                    default: 
+                    expose: false
+                MYSQL_HOST:
+                    default: 
+                    expose: false
+                MYSQL_PASSWORD:
+                    default: 
+                    expose: false
+                MYSQL_PORT:
+                    default: 
+                    expose: false
+                MYSQL_USERNAME:
+                    default: ${MYSQL_USERNAME}
+                    expose: false
+                PGVECTOR_DATABASE:
+                    default: trip_vdb
+                    expose: false
+                PGVECTOR_HOST:
+                    default: 
+                    expose: false
+                PGVECTOR_PASSWORD:
+                    default: 
+                    expose: false
+                PGVECTOR_PORT:
+                    default: 
+                    expose: false
+                PGVECTOR_TABLE:
+                    default: 
+                    expose: false
+                PGVECTOR_USER:
+                    default: root
+                    expose: false
+                PORT:
+                    default: 
+                    expose: false
+                REDIS_DATABASE:
+                    default: 
+                    expose: false
+                REDIS_HOST:
+                    default: 
+                    expose: false
+                REDIS_PASSWORD:
+                    default: 
+                    expose: false
+                REDIS_PORT:
+                    default: 
+                    expose: false
+                SESSION_COOKIE_SECURE:
+                    default: 
+                    expose: false
+            configs: []
+            portForwarding:
+                enabled: false
+        - name: trip-doge-pses
+          icon: https://service-icons.zeabur.com/git/nodejs/next.js.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                source: GITHUB
+                repo: 1063477621
+                branch: main
+                rootDirectory: /tripdog_frontend
+            ports:
+                - id: web
+                  port: 8080
+                  type: HTTP
+            env:
+                DASHSCOPE_API_KEY:
+                    default: 
+                    expose: false
+                NEXT_PUBLIC_API_BASE_URL:
+                    default: 
+                    expose: false
+            configs: []
+            portForwarding:
+                enabled: false
+        - name: redis
+          icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/redis.svg
+          template: PREBUILT_V2
+          spec:
+            source:
+                image: redis/redis-stack-server:latest
+            ports:
+                - id: database
+                  port: 6379
+                  type: TCP
+            volumes:
+                - id: data
+                  dir: /data
+            instructions:
+                - title: Command to connect to your Redis
+                  content: redis-cli -h ${PORT_FORWARDED_HOSTNAME} -p ${DATABASE_PORT_FORWARDED_PORT} -a ${REDIS_PASSWORD}
+                - title: Redis Connection String
+                  content: redis://:${REDIS_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}
+                - title: Redis password
+                  content: ${REDIS_PASSWORD}
+                - title: Redis host
+                  content: ${PORT_FORWARDED_HOSTNAME}
+                - title: Redis port
+                  content: ${DATABASE_PORT_FORWARDED_PORT}
+            env:
+                CONFFILE:
+                    default: /etc/redis-stack.conf
+                    expose: false
+                REDIS_ARGS:
+                    default: --requirepass ${REDIS_PASSWORD}
+                    expose: false
+                REDIS_CONNECTION_STRING:
+                    default: redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}
+                    expose: true
+                REDIS_HOST:
+                    default: ${CONTAINER_HOSTNAME}
+                    expose: true
+                REDIS_PASSWORD:
+                    default: ${PASSWORD}
+                    expose: true
+                REDIS_PORT:
+                    default: ${DATABASE_PORT}
+                    expose: true
+                REDIS_URI:
+                    default: ${REDIS_CONNECTION_STRING}
+                    expose: true
+            configs:
+                - path: /etc/redis-stack.conf
+                  template: |
+                    port 6379
+                    daemonize no
+                  permission: null
+                  envsubst: null
+            portForwarding:
+                enabled: true
