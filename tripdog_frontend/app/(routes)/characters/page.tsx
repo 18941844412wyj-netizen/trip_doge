@@ -61,7 +61,7 @@ export default function CharactersPage() {
 
     // 移动端使用新的粘土风格组件
     if (isMobile) {
-        return <Characters/>;
+        return <Characters contacts={contacts}/>;
     }
 
     const handleSelectCharacter = (character: RoleInfoVO) => {

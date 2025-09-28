@@ -21,7 +21,6 @@ import {RoleInfoVO} from "@/types";
 import Image from "next/image";
 import {getToken} from '@/services/api'
 import {useQwenTTSStream} from "@/services/useQwenTTSStream";
-// import {useQwenTTSStream} from "@/services/useQwenTTSRealtime";
 
 // 消息类型
 interface Message {
@@ -767,7 +766,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                         </div>
                         <h3 className="text-xl font-bold text-gray-800 mb-2">{character.name}</h3>
                         <p className="text-gray-600 text-center">{character.description}</p>
-                        
+
                         {/* 声音选择 */}
                         <div className="w-full mt-4">
                             <h4 className="text-lg font-semibold text-gray-800 mb-2">选择声音</h4>
@@ -794,9 +793,9 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
             {/* 角色信息侧边栏 - 桌面端 */}
             {!isMobile && showCharacterInfo && (
                 <div
-                    className="hidden md:block bg-transparent flex-1 shadow-md"
+                    className="hidden md:block bg-transparent flex-1 shadow-md overflow-y-scroll clay-scroll"
                 >
-                    <div className="h-full p-6">
+                    <div className="h-full p-6 ">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                 <Info size={20}/>
@@ -819,7 +818,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                             </div>
                             <h3 className="text-2xl font-bold text-gray-800 mb-4">{character.name}</h3>
                             <p className="text-gray-600 text-center leading-relaxed">{character.description}</p>
-                            
+
                             {/* 声音选择 */}
                             <div className="w-full mt-6">
                                 <h4 className="text-lg font-semibold text-gray-800 mb-3">选择声音</h4>

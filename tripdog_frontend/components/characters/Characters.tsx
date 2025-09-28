@@ -4,7 +4,6 @@
 import {useState} from 'react';
 import {motion} from 'framer-motion';
 import {RoleInfoVO} from '@/types';
-import {Spin} from 'antd';
 import {useRouter} from 'next/navigation';
 import {useChatStore} from '@/stores/chatStore';
 import Image from 'next/image';
@@ -24,30 +23,6 @@ export default function Characters({contacts}: { contacts: RoleInfoVO[] }) {
         contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (contact.description && contact.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Spin size="large"/>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="p-6 max-w-4xl w-full mx-auto">
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-                    <p className="text-red-700">加载失败: {error}</p>
-                    <button
-                        onClick={loadRoles}
-                        className="mt-4 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
-                    >
-                        重新加载
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="p-4  w-full mx-auto">
