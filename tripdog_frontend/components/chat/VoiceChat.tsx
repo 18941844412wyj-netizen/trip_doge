@@ -44,6 +44,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
     const [inputValue, setInputValue] = useState(''); // 添加输入框状态
     const [showCharacterInfo, setShowCharacterInfo] = useState(false); // 添加角色信息显示状态
     const [isMobile, setIsMobile] = useState(false); // 添加移动端判断状态
+    const [selectedVoice, setSelectedVoice] = useState('Cherry'); // 添加声音选择状态
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null); // 用于中断流式请求
 
@@ -99,8 +100,8 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
         setText: setQwenTTSText,
         isGlobalLoading: isQwenTTSLoading,
         start: startQwenTTS,
-        error: qwenTTSError
-    } = useQwenTTSStream('', {});
+        error: qwenTTSError,
+    } = useQwenTTSStream('', {voice: selectedVoice});
 
     // 监听通义千问 TTS 错误
     useEffect(() => {
@@ -133,7 +134,8 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                 ttsTriggeredRef.current[currentAIResponse] = true;
                 console.log('开始播放TTS:', currentAIResponse)
                 setTTSText(currentAIResponse);
-                const timer = setTimeout(() => {
+                // 直接将文本传递给 startTTS 函数，而不是依赖状态更新
+                setTimeout(() => {
                     try {
                         startTTS();
                     } catch (error) {
@@ -142,17 +144,12 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                         }
                     }
                 }, 100);
-
-                return () => {
-                    clearTimeout(timer);
-                };
             }
         }
     }, [currentAIResponse, isStreaming, autoPlay, getCurrentTTSState, isQwenTTSLoading]);
 
     // 解析SSE流数据
     const parseSSEStream = (text: string) => {
-        console.log(text)
         const lines = text.split('\n');
         let content = '';
 
@@ -385,28 +382,27 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                         className="md:m-2 md:rounded-full flex items-center justify-between p-4 backdrop-blur-sm shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]">
                         <div className="flex items-center gap-3">
                             {/* 返回按钮 - 仅在移动端显示 */}
-                            <Button
+                            {isMobile && (<Button
                                 type="text"
                                 icon={<ArrowLeft size={20}/>}
                                 onClick={() => router.push('/characters')}
-                                className="block !md:hidden p-0 mr-2"
-                            />
+                            />)}
+
 
                             {/* 角色头像 - 添加点击事件显示角色信息 */}
                             <div
                                 className="w-12 h-12 rounded-full flex items-center justify-center shadow-md cursor-pointer"
                                 onClick={() => setShowCharacterInfo(!showCharacterInfo)}
                             >
-                                {/*{character.avatarUrl ? (*/}
-                                {/*    <Image src={`${path}/${character.avatarUrl}`} width={20} height={20} alt={character.name}/>*/}
-                                {/*) : (*/}
-                                {/*    <span>🤖</span>*/}
-                                {/*)}*/}
-                                <span>🤖</span>
+                                {character.avatarUrl ? (
+                                    <Image src={`${character.avatarUrl}`} width={40} height={40} alt={character.name}/>
+                                ) : (
+                                    <span>🤖</span>
+                                )}
                             </div>
 
                             {/* 角色信息 */}
-                            <div>
+                            <div className="flex-1">
                                 <h3 className="font-bold text-gray-800">{character.name}</h3>
                                 <p className="text-xs text-gray-600 line-clamp-1">{character.description}</p>
                             </div>
@@ -589,13 +585,12 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                                             : 'bg-gradient-to-br from-purple-100 to-purple-200'}`}>
                                             {msg.role === 'user'
                                                 ? <User size={14} className="text-blue-600"/>
-                                                : <span>🤖</span>
-                                                // : (character.avatarUrl ? (
-                                                //     <Image src={character.avatarUrl} width={20} height={20}
-                                                //            alt={character.name}/>
-                                                // ) : (
-                                                //     <span>🤖</span>
-                                                // ))
+                                                : (character.avatarUrl ? (
+                                                    <Image src={character.avatarUrl} width={20} height={20}
+                                                           alt={character.name}/>
+                                                ) : (
+                                                    <span>🤖</span>
+                                                ))
                                             }
                                         </div>
                                         <div className={`
@@ -771,6 +766,26 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                         </div>
                         <h3 className="text-xl font-bold text-gray-800 mb-2">{character.name}</h3>
                         <p className="text-gray-600 text-center">{character.description}</p>
+
+                        {/* 声音选择 */}
+                        <div className="w-full mt-4">
+                            <h4 className="text-lg font-semibold text-gray-800 mb-2">选择声音</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                {['Cherry', 'Alice', 'Bob', 'Daisy'].map((voice) => (
+                                    <div
+                                        key={voice}
+                                        className={`p-3 rounded-lg cursor-pointer transition-all ${
+                                            selectedVoice === voice
+                                                ? 'bg-blue-500 text-white shadow-md'
+                                                : 'bg-gray-100 hover:bg-gray-200'
+                                        }`}
+                                        onClick={() => setSelectedVoice(voice)}
+                                    >
+                                        <div className="font-medium">{voice}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </Drawer>
             )}
@@ -778,9 +793,9 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
             {/* 角色信息侧边栏 - 桌面端 */}
             {!isMobile && showCharacterInfo && (
                 <div
-                    className="hidden md:block bg-transparent flex-1 shadow-md"
+                    className="hidden md:block bg-transparent flex-1 shadow-md overflow-y-scroll clay-scroll"
                 >
-                    <div className="h-full p-6">
+                    <div className="h-full p-6 ">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                 <Info size={20}/>
@@ -795,7 +810,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                         <div className="flex flex-col items-center py-4">
                             <div className="w-32 h-32 rounded-full flex items-center justify-center shadow-md mb-6">
                                 {character.avatarUrl ? (
-                                    <Image src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/${character.avatarUrl}`}
+                                    <Image src={`${character.avatarUrl}`}
                                            width={80} height={80} alt={character.name}/>
                                 ) : (
                                     <span className="text-4xl">🤖</span>
@@ -803,6 +818,26 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                             </div>
                             <h3 className="text-2xl font-bold text-gray-800 mb-4">{character.name}</h3>
                             <p className="text-gray-600 text-center leading-relaxed">{character.description}</p>
+
+                            {/* 声音选择 */}
+                            <div className="w-full mt-6">
+                                <h4 className="text-lg font-semibold text-gray-800 mb-3">选择声音</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {['Cherry', 'Alice', 'Bob', 'Daisy'].map((voice) => (
+                                        <div
+                                            key={voice}
+                                            className={`p-4 rounded-xl cursor-pointer transition-all ${
+                                                selectedVoice === voice
+                                                    ? 'bg-blue-500 text-white shadow-lg'
+                                                    : 'bg-white hover:bg-gray-50 border border-gray-200'
+                                            }`}
+                                            onClick={() => setSelectedVoice(voice)}
+                                        >
+                                            <div className="font-medium">{voice}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
