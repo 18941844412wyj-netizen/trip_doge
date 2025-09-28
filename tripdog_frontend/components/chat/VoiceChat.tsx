@@ -90,7 +90,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                         
                         // 如果超过5分钟，重置内容
                         if (timeDiff > fiveMinutes) {
-                            await chatApi.reset(character.id);
+                            // await chatApi.reset(character.id);
                         } else {
                             // 否则显示历史记录
                             const historyMessages: Message[] = historyItems.map(item => ({

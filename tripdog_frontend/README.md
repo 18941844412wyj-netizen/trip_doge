@@ -61,8 +61,6 @@ bun dev
 应用需要以下环境变量：
 
 - `NEXT_PUBLIC_API_BASE_URL` - 后端 API 基础地址（可选，默认为 http://localhost:7979）
-- `NEXT_PUBLIC_OPENAI_API_KEY` - DeepSeek API 密钥
-- `NEXT_PUBLIC_OPENAI_PROXY_URL` - API 代理地址（可选，默认为 DeepSeek 官方地址）
 - `DASHSCOPE_API_KEY` - 阿里云 DashScope API 密钥（用于语音合成）
 
 ### 环境变量配置方法
@@ -72,8 +70,6 @@ bun dev
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=https://your-api-domain.com
-NEXT_PUBLIC_OPENAI_API_KEY=your_deepseek_api_key
-NEXT_PUBLIC_OPENAI_PROXY_URL=https://api.deepseek.com
 DASHSCOPE_API_KEY=your_dashscope_api_key
 ```
 
