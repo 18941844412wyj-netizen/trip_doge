@@ -48,9 +48,52 @@ docker-compose up -d
 cd tripdog_backend
 mvn -U clean package -DskipTests
 mvn spring-boot:run
+
+环境变量配置
+# MySQL数据库初始化脚本：./sql/init.sql
+# Pgvector：手动创建db: CREATE DATABASE trip_vdb;
+
+## MySQL 数据库 (数据库名:trip_dog)
+MYSQL_PASSWORD=your_password      # (必需)
+MYSQL_HOST=localhost              # 默认localhost
+MYSQL_PORT=3306                   # 默认3306
+MYSQL_USERNAME=root               # 默认root
+
+## Redis Redis
+REDIS_HOST=your_redis_host        # (必需)
+REDIS_PORT=6379                   # (必需)
+REDIS_PASSWORD=your_password      # (必需)
+REDIS_DATABASE=0                  # (必需)
+
+## AI 服务
+DASHSCOPE_API_KEY=your_api_key    # (必需)
+# 使用模型: qwen-plus 、text-embedding-v3 (嵌入)
+
+## MinIO 对象存储 (存储桶:trip-doge)
+MINIO_ENDPOINT=your_endpoint      # (必需)
+MINIO_AK=your_access_key         # (必需)
+MINIO_SK=your_secret_key         # (必需)
+
+## 邮件服务 (注册验证码)
+MAIL_USERNAME=your_email          # (必需)
+MAIL_PASSWORD=your_auth_code      # (必需)
+SERVER_PORT=7979                  # 服务端口，默认7979
+MAIL_HOST=smtp.qq.com            # SMTP服务器，默认QQ邮箱
+MAIL_PORT=465                    # SMTP端口，默认465
+
+## PostgreSQL向量数据库 (用于文档向量存储)
+PGVECTOR_HOST=localhost          # 默认localhost
+PGVECTOR_PORT=5432              # 默认5432
+PGVECTOR_DATABASE=trip_vdb      # 默认trip_vdb
+PGVECTOR_USER=postgres          # 默认postgres
+PGVECTOR_PASSWORD=postgres      # 默认postgres
+PGVECTOR_TABLE=vectors_db       # 默认vectors_db
+
+## 跨域配置
+CORS_ALLOWED_ORIGINS=http://xxx:3000,http://xxx:7979# 允许的前端域名
+默认后端地址示例： http://localhost:7979（端口以配置为准）
 ```
 
-默认后端地址示例： http://localhost:7979（端口以配置为准）
 
 4. 启动前端
 
