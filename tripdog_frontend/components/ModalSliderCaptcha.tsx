@@ -121,7 +121,7 @@ const ModalSliderCaptcha: React.FC<{
                            bgSize={bgSize}
                            tipText={{
                                default: "向右拖动完成拼图",
-                               loading: "‍‍努力中...",
+                               loading: "‍努力中...",
                            }}
                            puzzleSize={{
                                width: puzzleWidth,

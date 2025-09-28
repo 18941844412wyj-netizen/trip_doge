@@ -71,6 +71,20 @@ export interface ChatHistoryDO {
     createdAt: string;
 }
 
+// 文档相关类型
+export interface DocVO {
+    id: number;
+    fileId: string;
+    userId: number;
+    roleId: number;
+    fileUrl: string;
+    fileName: string;
+    fileSize: number;
+    fileSizeFormatted: string;
+    createTime: string;
+    updateTime: string;
+}
+
 // 请求参数类型
 export interface RegisterRequest {
     email: string;

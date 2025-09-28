@@ -11,7 +11,7 @@ import Image from 'next/image';
 export default function Characters({contacts}: { contacts: RoleInfoVO[] }) {
     const [searchTerm, setSearchTerm] = useState('');
     const router = useRouter();
-    const {setCurrentCharacter, createSession} = useChatStore();
+    const {setCurrentCharacter, createSession, currentCharacter} = useChatStore();
 
     const handleSelectCharacter = (contact: RoleInfoVO) => {
         setCurrentCharacter(contact);
@@ -52,7 +52,11 @@ export default function Characters({contacts}: { contacts: RoleInfoVO[] }) {
                         transition={{delay: index * 0.05}}
                         whileHover={{y: -3}}
                         onClick={() => handleSelectCharacter(contact)}
-                        className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg shadow-purple-200/30 border border-white/50 hover:shadow-xl hover:shadow-purple-300/40 transition-all duration-300 cursor-pointer"
+                        className={`bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg shadow-purple-200/30 border border-white/50 hover:shadow-xl hover:shadow-purple-300/40 transition-all duration-300 cursor-pointer ${
+                            currentCharacter?.id === contact.id 
+                            ? 'ring-2 ring-purple-500 shadow-xl shadow-purple-300/50' 
+                            : ''
+                        }`}
                     >
                         <div className="flex items-center">
                             {/* 头像 */}

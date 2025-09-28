@@ -17,7 +17,7 @@ import './VoiceChat.css'
 import {chatApi} from '@/services/api'
 import {useRouter} from 'next/navigation';
 
-import {RoleInfoVO} from "@/types";
+import {RoleInfoVO, ChatHistoryDO} from "@/types";
 import Image from "next/image";
 import {getToken} from '@/services/api'
 import {useQwenTTSStream} from "@/services/useQwenTTSStream";
@@ -36,11 +36,11 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
     // 状态管理
     const {message} = App.useApp();
     const [messages, setMessages] = useState<Message[]>([]);
+    const prevCharacterId = useRef(character.id);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
     const [autoPlay, setAutoPlay] = useState(true);
     const [currentAIResponse, setCurrentAIResponse] = useState('');
     const [isStreaming, setIsStreaming] = useState(false); // 添加流式状态
-    const [showHistory, setShowHistory] = useState(false); // 添加历史记录显示状态
     const [inputValue, setInputValue] = useState(''); // 添加输入框状态
     const [showCharacterInfo, setShowCharacterInfo] = useState(false); // 添加角色信息显示状态
     const [isMobile, setIsMobile] = useState(false); // 添加移动端判断状态
@@ -65,6 +65,52 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
             window.removeEventListener('resize', checkIsMobile);
         };
     }, []);
+
+    // 加载聊天历史
+    useEffect(() => {
+        const loadChatHistory = async () => {
+            if (prevCharacterId.current !== character.id) {
+                setMessages([]);
+                prevCharacterId.current = character.id;
+            }
+            try {
+                const response = await chatApi.history(character.id);
+                if (response.code === 200 && response.data) {
+                    // 检查最新记录的时间
+                    const historyItems = response.data as ChatHistoryDO[];
+                    if (historyItems.length > 0) {
+                        // 获取最新的记录
+                        const latestRecord = historyItems.reduce((latest, current) => {
+                            return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
+                        });
+                        
+                        // 计算最新记录距离现在的时间差（毫秒）
+                        const timeDiff = Date.now() - new Date(latestRecord.createdAt).getTime();
+                        const fiveMinutes = 5 * 60 * 1000; // 5分钟的毫秒数
+                        
+                        // 如果超过5分钟，重置内容
+                        if (timeDiff > fiveMinutes) {
+                            await chatApi.reset(character.id);
+                        } else {
+                            // 否则显示历史记录
+                            const historyMessages: Message[] = historyItems.map(item => ({
+                                id: `history-${item.id}`,
+                                role: item.role as 'user' | 'assistant',
+                                content: item.enhancedContent || item.content,
+                                timestamp: new Date(item.createdAt),
+                            }));
+                            
+                            setMessages(historyMessages);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('加载聊天历史失败:', error);
+            }
+        };
+
+        loadChatHistory();
+    }, [character.id]);
 
     // 自动滚动到底部
     const scrollToBottom = () => {
@@ -146,7 +192,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                 }, 100);
             }
         }
-    }, [currentAIResponse, isStreaming, autoPlay, getCurrentTTSState, isQwenTTSLoading]);
+    }, [currentAIResponse, isStreaming, autoPlay, getCurrentTTSState, isQwenTTSLoading, selectedVoice]);
 
     // 解析SSE流数据
     const parseSSEStream = (text: string) => {
@@ -375,7 +421,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
 
     return (
         <div className="voice-root-min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 flex">
-            <div className='flex-3 voice-root-min-h-screen flex flex-col'>
+            <div className='flex-2/3 voice-root-min-h-screen flex flex-col'>
                 {/* 头部 */}
                 <div className='block relative top-0 w-full mx-auto'>
                     <div
@@ -403,8 +449,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
 
                             {/* 角色信息 */}
                             <div className="flex-1">
-                                <h3 className="font-bold text-gray-800">{character.name}</h3>
-                                <p className="text-xs text-gray-600 line-clamp-1">{character.description}</p>
+                                <div className="font-bold text-gray-800">{character.name}</div>
                             </div>
                         </div>
 
@@ -444,20 +489,6 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                                     <RotateCw size={18}/>
                                 </button>
                             </Tooltip>)}
-
-                            {/*{messages.length > 0 && (<Tooltip title="历史记录">*/}
-                            {/*    <button*/}
-                            {/*        onClick={() => setShowHistory(true)}*/}
-                            {/*        className="w-12 h-12 rounded-full flex items-center justify-center*/}
-                            {/*    bg-gradient-to-br from-purple-300 to-purple-400 text-white*/}
-                            {/*    shadow-[0_4px_12px_rgba(147,51,234,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]*/}
-                            {/*    transition-all duration-300 transform active:scale-95*/}
-                            {/*    hover:scale-105 hover:-translate-y-0.5"*/}
-                            {/*    >*/}
-                            {/*        <History size={18}/>*/}
-                            {/*    </button>*/}
-                            {/*</Tooltip>)}*/}
-
                         </div>
                     </div>
                 </div>
@@ -793,7 +824,7 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
             {/* 角色信息侧边栏 - 桌面端 */}
             {!isMobile && showCharacterInfo && (
                 <div
-                    className="hidden md:block bg-transparent flex-1 shadow-md overflow-y-scroll clay-scroll"
+                    className="hidden md:block bg-transparent flex-1/3 shadow-md overflow-y-scroll clay-scroll"
                 >
                     <div className="h-full p-6 ">
                         <div className="flex justify-between items-center mb-6">
@@ -839,103 +870,6 @@ export default function VoiceChat({character}: { character: RoleInfoVO }) {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {showHistory && (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col
-                                 border border-white/30">
-                        <div className="flex items-center justify-between p-4 bg-white/70 backdrop-blur-sm
-                                     shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
-                                     border-b border-white/30 rounded-t-2xl">
-                            <h3 className="text-lg font-bold text-gray-800">对话历史</h3>
-                            <button
-                                onClick={() => setShowHistory(false)}
-                                className="w-8 h-8 rounded-full flex items-center justify-center
-                                         bg-gradient-to-br from-gray-200 to-gray-300 text-gray-600
-                                         shadow-[0_4px_12px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.5)]
-                                         transition-all duration-300 transform active:scale-95
-                                         hover:scale-105 hover:-translate-y-0.5"
-                            >
-                                <X size={18}/>
-                            </button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-4 bg-white/50 backdrop-blur-sm">
-                            {messages.length === 0 ? (
-                                <p className="text-gray-500 text-center py-8">暂无对话历史</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {messages.map((msg) => (
-                                        <div
-                                            key={msg.id}
-                                            className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}
-                                        >
-                                            {msg.role === 'assistant' && (
-                                                <div
-                                                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
-                                                             shadow-[0_2px_8px_rgba(0,0,0,0.15),inset_0_1px_2px_rgba(255,255,255,0.8)]"
-                                                >
-                                                    {character.avatarUrl ? (
-                                                        <Image src={character.avatarUrl} width={14} height={14}
-                                                               alt={character.name}/>
-                                                    ) : (
-                                                        <span>🤖</span>
-                                                    )}
-                                                </div>
-                                            )}
-                                            <div
-                                                className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                                                    msg.role === 'user'
-                                                        ? 'bg-gradient-to-br from-blue-400 to-blue-500 text-white rounded-br-none shadow-[0_4px_12px_rgba(59,130,246,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]'
-                                                        : 'bg-gradient-to-br from-pink-50 to-pink-100 text-gray-800 rounded-bl-none shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)] border border-white/30'
-                                                }`}
-                                            >
-                                                {msg.role === 'assistant' ? (
-                                                    <div className="prose prose-sm max-w-none">
-                                                        <ReactMarkdown>
-                                                            {msg.content}
-                                                        </ReactMarkdown>
-                                                    </div>
-                                                ) : (
-                                                    <p>{msg.content}</p>
-                                                )}
-                                                <p className="text-xs mt-1 opacity-70">
-                                                    {new Date(msg.timestamp).toLocaleTimeString()}
-                                                </p>
-                                            </div>
-                                            {msg.role === 'user' && (
-                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center flex-shrink-0
-                                                            shadow-[0_4px_12px_rgba(59,130,246,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]">
-                                                    <User size={14} className="text-white"/>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {messages.length > 0 && (
-                            <div className="p-4 bg-white/70 backdrop-blur-sm
-                                         shadow-[0_4px_16px_rgba(0,0,0,0.1),inset_0_1px_2px_rgba(255,255,255,0.8)]
-                                         border-t border-white/30">
-                                <button
-                                    onClick={() => {
-                                        setMessages([]);
-                                        setShowHistory(false);
-                                    }}
-                                    className="w-full py-2 bg-gradient-to-br from-red-400 to-red-500 text-white rounded-xl font-medium
-                                             shadow-[0_4px_12px_rgba(239,68,68,0.3),inset_0_1px_2px_rgba(255,255,255,0.5)]
-                                             transition-all duration-300 transform active:scale-95
-                                             hover:scale-[1.02] hover:-translate-y-0.5"
-                                >
-                                    清空历史记录
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
