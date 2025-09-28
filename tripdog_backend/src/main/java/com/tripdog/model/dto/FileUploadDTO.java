@@ -13,6 +13,7 @@ import lombok.Data;
 public class FileUploadDTO {
     private String fileId;   // 文件ID
     private String fileUrl;  // 文件URL（如果需要）
+    private String objectKey;
     private String filePath;
     private String fileName; // 文件名
 }

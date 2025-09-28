@@ -20,6 +20,10 @@ public class AiConfig {
     @Value("${DASHSCOPE_API_KEY}")
     private String dashscopeApiKey;
 
+    /**
+     * todo mcp接入异常
+     * @return
+     */
     @Bean
     public McpTransport webSearchMcpTransport() {
         Map<String, String> headers = Map.of(

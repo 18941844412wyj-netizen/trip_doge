@@ -15,11 +15,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -139,15 +139,9 @@ public class UserController {
             @ApiResponse(responseCode = "10106", description = "会话已过期")
     })
     @PostMapping("/info")
-    public Result<UserInfoVO> getCurrentUser(HttpServletRequest request) {
-        // 从请求中提取token
-        String token = TokenUtils.extractToken(request);
-        if (token == null) {
-            return Result.error(ErrorCode.USER_NOT_LOGIN);
-        }
-
-        // 直接从Redis获取用户Session信息（会自动续期）
-        UserInfoVO loginUser = userSessionService.getSession(token);
+    public Result<UserInfoVO> getCurrentUser() {
+        // 从用户会话服务获取当前登录用户信息
+        UserInfoVO loginUser = userSessionService.getCurrentUser();
         if (loginUser == null) {
             return Result.error(ErrorCode.USER_NOT_LOGIN);
         }

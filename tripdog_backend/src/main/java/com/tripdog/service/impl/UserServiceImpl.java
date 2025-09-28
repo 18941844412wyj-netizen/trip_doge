@@ -1,5 +1,6 @@
 package com.tripdog.service.impl;
 
+import com.tripdog.common.Constants;
 import com.tripdog.common.ErrorCode;
 import com.tripdog.mapper.UserMapper;
 import com.tripdog.model.converter.UserConverter;
@@ -9,7 +10,13 @@ import com.tripdog.model.entity.UserDO;
 import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.EmailService;
 import com.tripdog.service.UserService;
+
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MinioClient;
+import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +26,10 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+    @Value("${minio.bucket-name}")
+    private String bucketName;
 
+    private final MinioClient minioClient;
     private final UserMapper userMapper;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
@@ -71,7 +81,7 @@ public class UserServiceImpl implements UserService {
         // 3. 转换为DO对象并加密密码
         UserDO userDO = UserConverter.INSTANCE.toUserDO(registerDTO);
         userDO.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
-
+        userDO.setAvatarUrl(Constants.DEFAULT_AVATAR);
         // 4. 创建用户
         boolean success = createUser(userDO);
         if (!success) {
@@ -98,6 +108,22 @@ public class UserServiceImpl implements UserService {
         // 3. 检查用户状态
         if (userDO.getStatus() != 1) {
             throw new RuntimeException(ErrorCode.USER_LOGIN_FAILED.getMessage());
+        }
+
+        // 转化头像url
+        String url;
+        try{
+            url = minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)
+                    .bucket(bucketName)
+                    .object(userDO.getAvatarUrl())
+                    .expiry(60 * 60)
+                    .build()
+            );
+            userDO.setAvatarUrl(url);
+        }catch (Exception e){
+            throw new RuntimeException(ErrorCode.NO_FOUND_FILE.getMessage());
         }
 
         // 4. 返回用户信息

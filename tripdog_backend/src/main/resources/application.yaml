@@ -4,6 +4,15 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:ai}
 
+  # Jackson配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
   # Web配置
   web:
     resources:

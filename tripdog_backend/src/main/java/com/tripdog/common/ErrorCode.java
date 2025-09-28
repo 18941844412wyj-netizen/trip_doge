@@ -40,7 +40,14 @@ public enum ErrorCode {
 
     // 聊天记录相关错误码 (10400-10499)
     CHAT_HISTORY_NOT_FOUND(10400, "聊天记录不存在"),
-    CHAT_HISTORY_SAVE_FAILED(10401, "聊天记录保存失败");
+    CHAT_HISTORY_SAVE_FAILED(10401, "聊天记录保存失败"),
+
+    // 权限相关错误码 (10500-10599)
+    NO_AUTH(10500, "无权限访问"),
+    NOT_FOUND(10404, "资源不存在"),
+
+    // Minio
+    NO_FOUND_FILE(10600, "文件不存在");
 
     private final int code;
     private final String message;

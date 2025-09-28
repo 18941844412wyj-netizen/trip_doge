@@ -8,6 +8,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.tripdog.model.dto.FileUploadDTO;
@@ -25,8 +27,12 @@ import lombok.extern.slf4j.Slf4j;
  * @description:
  */
 @Slf4j
+@Component
 public class FileUploadUtils {
     private static String baseDir = "./files";
+
+    @Value("${minio.endpoint}")
+    private String MINIO_HOST;
 
     public static FileUploadDTO upload2Local(MultipartFile file, String path) {
         try {
@@ -41,6 +47,7 @@ public class FileUploadUtils {
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
             return FileUploadDTO.builder()
+                .fileId(GeneratorIdUtils.getUUID())
                 .fileName(fileName)
                 .filePath(String.valueOf(filePath))
                 .fileId(String.valueOf(System.currentTimeMillis()))
@@ -59,7 +66,7 @@ public class FileUploadUtils {
      * @param bucketName 桶名
      * @return 上传结果DTO
      */
-    public static FileUploadDTO upload2Minio(MultipartFile file, Long userId, MinioClient minioClient, String bucketName, String path) {
+    public FileUploadDTO upload2Minio(MultipartFile file, Long userId, MinioClient minioClient, String bucketName, String path) {
         try {
             // 检查文件
             if (file.isEmpty()) {
@@ -92,14 +99,15 @@ public class FileUploadUtils {
             );
 
             // 构建文件访问URL
-            String fileUrl = String.format("https://trip-minio.zeabur.app/%s/%s", bucketName, objectKey);
+            String fileUrl = String.format(MINIO_HOST + "/%s/%s", bucketName, objectKey);
 
             log.info("文件上传成功: 用户ID={}, 文件名={}, 对象路径={}", userId, originalFilename, objectKey);
 
             return FileUploadDTO.builder()
+                .fileId(GeneratorIdUtils.getUUID())
                 .fileName(fileName)
                 .filePath(fileUrl)
-                .fileId(String.valueOf(System.currentTimeMillis()))
+                .objectKey(objectKey)
                 .build();
 
         } catch (MinioException e) {
