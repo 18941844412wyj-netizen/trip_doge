@@ -132,7 +132,7 @@ export default function FilesPage() {
         } finally {
             setLoading(false);
         }
-    }, [currentCharacter]);
+    }, [currentCharacter, message]);
 
     // 计算各类文件的数量
     const calculateFileCounts = (files: UploadedFile[]): { [key: string]: number } => {
