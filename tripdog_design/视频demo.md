@@ -3,7 +3,10 @@
 ## 一、视频Demo展示
 
 
-https://github.com/user-attachments/assets/9787e872-a11d-4ff4-b3d6-1c2930273f19
+
+https://github.com/user-attachments/assets/3783cb68-baa6-44ae-9c09-b70cb10938cb
+
+
 
 
 ### 1.1 演示概览
