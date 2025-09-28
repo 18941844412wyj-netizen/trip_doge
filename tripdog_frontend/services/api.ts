@@ -9,6 +9,7 @@ import {
     LoginRequest,
     SendEmailRequest,
     ChatRequest,
+    DocVO,
 } from '@/types';
 
 // API基础配置
@@ -170,5 +171,45 @@ export const docApi = {
         });
 
         return response.json();
+    },
+
+    // 查询文档列表
+    list: (roleId?: number): Promise<BaseResponse<DocVO[]>> => {
+        return apiRequest('/api/doc/list', {
+            method: 'POST',
+            body: JSON.stringify({
+                roleId: roleId || null
+            }),
+        }, true);
+    },
+
+    // 下载文档
+    download: (fileId: string): Promise<Response> => {
+        const token = getToken();
+        const headers = new Headers();
+        
+        if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+        }
+        
+        headers.set('Content-Type', 'application/json');
+
+        return fetch(`${API_BASE_URL}/api/doc/download`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                fileId: fileId
+            }),
+        });
+    },
+
+    // 删除文档
+    delete: (fileId: string): Promise<BaseResponse<string>> => {
+        return apiRequest('/api/doc/delete', {
+            method: 'POST',
+            body: JSON.stringify({
+                fileId: fileId
+            }),
+        }, true);
     },
 };

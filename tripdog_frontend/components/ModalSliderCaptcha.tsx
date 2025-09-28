@@ -36,7 +36,7 @@ const ModalSliderCaptcha: React.FC<{
     sliderCaptchaProps?: Record<string, unknown>,   // SliderCaptcha的属性，详情见：https://www.npmjs.com/package/rc-slider-captcha
 }> = React.memo(({
                      modalProps, sliderCaptchaProps, open, onCancel,
-                     format = "dataURL", range = 5, onVerify, request
+                     format = "dataURL", onVerify, request
                  }) => {
     // 图片尺寸
     const bgSize = {
@@ -45,6 +45,8 @@ const ModalSliderCaptcha: React.FC<{
     }
     // 拼图宽度
     const puzzleWidth = 70
+    // 拼图高度
+    const puzzleHeight = 70
 
     const offsetXRef = useRef(0)    // x 轴偏移值
     const handleOffsetX = (res?: Result): Result => {
@@ -63,7 +65,7 @@ const ModalSliderCaptcha: React.FC<{
             return createPuzzle("/captcha/puzzle.png", {
                 format,
                 width: puzzleWidth,
-                height: puzzleWidth,
+                height: puzzleHeight,
                 bgWidth: 280,
                 bgHeight: 173,
                 quality: 1.0,       // 图片质量，默认0.8
@@ -121,7 +123,7 @@ const ModalSliderCaptcha: React.FC<{
                            bgSize={bgSize}
                            tipText={{
                                default: "向右拖动完成拼图",
-                               loading: "‍‍努力中...",
+                               loading: "‍努力中...",
                            }}
                            puzzleSize={{
                                width: puzzleWidth,

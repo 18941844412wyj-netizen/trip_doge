@@ -1,21 +1,16 @@
 "use client";
 
-import React, {useState, useEffect} from 'react';
-import {useRouter} from 'next/navigation';
-import {useAuth} from '@/contexts';
-import {Button, Form, Input, Card, Typography, Space, App} from 'antd';
-import {MailOutlined, LockOutlined, UserOutlined, SafetyCertificateOutlined} from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts';
+import { Button, Form, Input, Card, Typography, Space, Spin, App} from 'antd';
+import { MailOutlined, LockOutlined, UserOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import Link from 'next/link';
-import ModalSliderCaptcha from '@/components/ModalSliderCaptcha';
 
-const {Title, Text} = Typography;
+const { Title, Text } = Typography;
 
-function Countdown({value, format, onFinish}: { value: number, format: string, onFinish: () => void }) {
-    const [remaining, setRemaining] = useState(0);
-    
-    useEffect(() => {
-        setRemaining(Math.max(0, Math.floor((value - Date.now()) / 1000)));
-    }, [value]);
+function Countdown({value, onFinish}: { value: number, format: string, onFinish: () => void }) {
+    const [remaining, setRemaining] = useState(Math.max(0, Math.floor((value - Date.now()) / 1000)));
 
     useEffect(() => {
         if (remaining <= 0) {
@@ -40,15 +35,14 @@ function Countdown({value, format, onFinish}: { value: number, format: string, o
     return <span>{remaining}秒后重试</span>;
 }
 
+
 export default function SignupPage() {
     const {message} = App.useApp();
     const [form] = Form.useForm();
     const router = useRouter();
-    const {register, sendEmailCode, isLoading, user} = useAuth();
+    const { register, sendEmailCode, isLoading, user } = useAuth();
     const [error, setError] = useState('');
     const [countdown, setCountdown] = useState(0);
-    const [isSendingCode, setIsSendingCode] = useState(false);
-    const [showCaptcha, setShowCaptcha] = useState(false); // 控制滑动验证码弹窗显示
 
     // 如果用户已经登录，重定向到聊天页面
     useEffect(() => {
@@ -71,69 +65,72 @@ export default function SignupPage() {
         }
     };
 
-    const handleSendCode = async () => {
-        const email = form.getFieldValue('email');
-        if (!email) {
-            message.error('请输入邮箱地址');
-            return;
-        }
-
-        // 显示滑动验证码
-        setShowCaptcha(true);
-    };
-
-    // 滑动验证码验证通过后的回调
-    const handleCaptchaSuccess = async () => {
-        // 关闭滑动验证码弹窗
-        setShowCaptcha(false);
-        
+    const onSendCode = async () => {
         try {
-            setIsSendingCode(true);
             const email = form.getFieldValue('email');
+            if (!email) {
+                message.error('请输入邮箱地址');
+                return;
+            }
+
+            const emailValidation = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailValidation.test(email)) {
+                message.error('请输入有效的邮箱地址');
+                return;
+            }
+
             const result = await sendEmailCode(email);
             if (result.success) {
-                message.success('验证码已发送，请查收邮箱');
-                setCountdown(Date.now() + 60 * 1000); // 60秒倒计时
+                message.success(result.message);
+                setCountdown(Date.now() + 60000); // 60秒倒计时
             } else {
                 message.error(result.message);
             }
         } catch {
             message.error('发送验证码失败');
-        } finally {
-            setIsSendingCode(false);
         }
     };
+
+    // 如果用户已经登录，显示加载状态直到重定向
+    if (user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 p-4">
+                <Spin size="large" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 p-4">
             <Card className="w-full max-w-md shadow-xl rounded-2xl border-0 bg-white/80 backdrop-blur-sm">
-                <div className="text-center mb-6">
-                    <Title level={2}>用户注册</Title>
-                    <Text type="secondary">欢迎加入TripDoge</Text>
+                <div className="text-center mb-8">
+                    <Title level={2} className="!mb-2">创建账户</Title>
+                    <Text type="secondary">填写信息开始您的旅程</Text>
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
+                    <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
                         {error}
                     </div>
                 )}
 
                 <Form
                     form={form}
-                    name="signup"
+                    name="register"
                     onFinish={onFinish}
                     layout="vertical"
+                    requiredMark={false}
                 >
                     <Form.Item
                         name="email"
                         rules={[
-                            {required: true, message: '请输入邮箱地址'},
-                            {type: 'email', message: '请输入有效的邮箱地址'}
+                            { required: true, message: '请输入邮箱地址' },
+                            { type: 'email', message: '请输入有效的邮箱地址' }
                         ]}
                     >
                         <Input
-                            prefix={<MailOutlined className="text-gray-400"/>}
-                            placeholder="邮箱"
+                            prefix={<MailOutlined className="text-gray-400" />}
+                            placeholder="邮箱地址"
                             size="large"
                             className="rounded-xl"
                         />
@@ -141,10 +138,10 @@ export default function SignupPage() {
 
                     <Form.Item
                         name="nickname"
-                        rules={[{required: true, message: '请输入昵称'}]}
+                        rules={[{ required: true, message: '请输入昵称' }]}
                     >
                         <Input
-                            prefix={<UserOutlined className="text-gray-400"/>}
+                            prefix={<UserOutlined className="text-gray-400" />}
                             placeholder="昵称"
                             size="large"
                             className="rounded-xl"
@@ -152,14 +149,42 @@ export default function SignupPage() {
                     </Form.Item>
 
                     <Form.Item
+                        name="code"
+                        rules={[{ required: true, message: '请输入验证码' }]}
+                    >
+                        <Space.Compact style={{ width: '100%' }}>
+                            <Input
+                                prefix={<SafetyCertificateOutlined className="text-gray-400" />}
+                                placeholder="验证码"
+                                size="large"
+                                className="rounded-l-xl flex-1"
+                            />
+                            <Button
+                                size="large"
+                                onClick={onSendCode}
+                                disabled={countdown > Date.now()}
+                                className="rounded-r-xl"
+                            >
+                                {countdown > Date.now() ? (
+                                    <Countdown
+                                        value={countdown}
+                                        format="s秒后重试"
+                                        onFinish={() => setCountdown(0)}
+                                    />
+                                ) : '发送验证码'}
+                            </Button>
+                        </Space.Compact>
+                    </Form.Item>
+
+                    <Form.Item
                         name="password"
                         rules={[
-                            {required: true, message: '请输入密码'},
-                            {min: 6, message: '密码至少6位'}
+                            { required: true, message: '请输入密码' },
+                            { min: 6, message: '密码至少6位' }
                         ]}
                     >
                         <Input.Password
-                            prefix={<LockOutlined className="text-gray-400"/>}
+                            prefix={<LockOutlined className="text-gray-400" />}
                             placeholder="密码"
                             size="large"
                             className="rounded-xl"
@@ -167,25 +192,25 @@ export default function SignupPage() {
                     </Form.Item>
 
                     <Form.Item
-                        name="code"
-                        rules={[{required: true, message: '请输入验证码'}]}
+                        name="confirm"
+                        dependencies={['password']}
+                        rules={[
+                            { required: true, message: '请确认密码' },
+                            ({ getFieldValue }) => ({
+                                validator(_, value) {
+                                    if (!value || getFieldValue('password') === value) {
+                                        return Promise.resolve();
+                                    }
+                                    return Promise.reject(new Error('两次输入的密码不一致'));
+                                },
+                            }),
+                        ]}
                     >
-                        <Input
-                            prefix={<SafetyCertificateOutlined className="text-gray-400"/>}
-                            placeholder="验证码"
+                        <Input.Password
+                            prefix={<LockOutlined className="text-gray-400" />}
+                            placeholder="确认密码"
                             size="large"
                             className="rounded-xl"
-                            suffix={
-                                <Button
-                                    onClick={handleSendCode}
-                                    disabled={!!countdown || isSendingCode}
-                                    loading={isSendingCode}
-                                    size="small"
-                                    className="rounded-lg"
-                                >
-                                    {countdown ? <Countdown value={countdown} format="ss" onFinish={() => setCountdown(0)}/> : '发送'}
-                                </Button>
-                            }
                         />
                     </Form.Item>
 
@@ -193,34 +218,22 @@ export default function SignupPage() {
                         <Button
                             type="primary"
                             htmlType="submit"
-                            loading={isLoading}
                             size="large"
-                            className="w-full rounded-xl bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 border-0"
+                            loading={isLoading}
+                            className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 border-0"
                         >
                             注册
                         </Button>
                     </Form.Item>
                 </Form>
 
-                <div className="text-center mt-4">
-                    <Space>
-                        <Text type="secondary">已有账户?</Text>
-                        <Link href="/login" className="text-orange-500 hover:text-orange-600 font-medium">
-                            立即登录
-                        </Link>
-                    </Space>
+                <div className="text-center mt-6">
+                    <Text type="secondary">已有账户？</Text>{' '}
+                    <Link href="/login" className="text-blue-500 hover:text-blue-700 font-medium">
+                        立即登录
+                    </Link>
                 </div>
             </Card>
-
-            {/* 滑动验证码弹窗 */}
-            <ModalSliderCaptcha
-                open={showCaptcha}
-                onCancel={() => setShowCaptcha(false)}
-                onVerify={async () => {
-                    handleCaptchaSuccess();
-                    return Promise.resolve(true);
-                }}
-            />
         </div>
     );
 }

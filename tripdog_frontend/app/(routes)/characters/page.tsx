@@ -150,11 +150,6 @@ export default function CharactersPage() {
                                             {character.name}
                                         </Title>
 
-                                        {/* 描述 - 粘土风格美化 */}
-                                        <Paragraph className="text-gray-600 text-base leading-relaxed mb-6">
-                                            {character.description}
-                                        </Paragraph>
-
                                         {/* 选择按钮 - 粘土风格美化 */}
                                         <div className="mt-6">
                                             <div className={`

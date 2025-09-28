@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
         remotePatterns: [
             {
                 protocol: 'https',
-                hostname: 'trip-doge-backend.zeabur.app',
+                hostname: 'trip-minio.zeabur.app',
             }
         ],
     },

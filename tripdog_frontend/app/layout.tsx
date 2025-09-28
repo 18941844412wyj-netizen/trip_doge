@@ -1,8 +1,9 @@
 import type {Metadata} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from '@/contexts/AuthContext';
-import { App as AntApp } from 'antd';
+import {AuthProvider} from '@/contexts/AuthContext';
+import {App as AntApp} from 'antd';
+import React from "react";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: {default: "人生只需一场旅行", template: "%s | TripDoge"},
-    description: "我们来自“七牛云官方队”由前端、后端、产品三位伙伴共同完成该AI虚拟角色产品。",
+    title: "你身边的AI宠物伙伴 | TripDoge",
+    description: "一个永不离开、持续成长、高度个性化的AI宠物伙伴",
     authors: [
         {
             name: "netizen",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
             url: "https://github.com/lijiajunply"
         },
     ],
-    keywords: "nextjs, react, AI, Trip, TripDoge"
+    keywords: "nextjs, react, AI, Trip, TripDoge",
 };
 
 export default function RootLayout({children,}: Readonly<{
