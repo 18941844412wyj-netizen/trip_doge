@@ -1,10 +1,10 @@
 // app/chat/layout.tsx
 "use client";
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {Layout, Menu} from 'antd';
+import {Layout, Menu, message} from 'antd';
 import {
     MessageCircle,
     History as HistoryIcon,
@@ -13,19 +13,33 @@ import {
 } from 'lucide-react';
 import {useAuth} from '@/contexts/AuthContext';
 import Characters from "@/components/characters/Characters";
-import {useMediaQuery} from 'react-responsive';
+import {rolesApi} from "@/services/api";
+import {RoleInfoVO} from "@/types";
 
 const {Content} = Layout;
 
-export default function ChatLayout({
-                                       children,
-                                   }: {
-    children: React.ReactNode;
-}) {
-    const [collapsed] = useState(false);
+export default function ChatLayout({children,}: { children: React.ReactNode; }) {
     const pathname = usePathname();
     const {user, isLoading} = useAuth();
-    const isMobile = useMediaQuery({maxWidth: 768});
+    const [contacts, setContacts] = useState<RoleInfoVO[]>([]);
+
+    useEffect(() => {
+        loadRoles();
+    }, []);
+
+    const loadRoles = async () => {
+        try {
+            const response = await rolesApi.list();
+
+            if (response.success) {
+                setContacts(response.data);
+            } else {
+                message.error(response.message || '获取角色列表失败');
+            }
+        } catch  {
+            message.error('网络错误，请稍后重试');
+        }
+    };
 
     // 如果用户未认证，则不显示菜单
     if (isLoading) {
@@ -81,32 +95,6 @@ export default function ChatLayout({
         />
     );
 
-    // return (
-    //     <div className="min-h-screen flex flex-col md:flex-row">
-    //         {/* 桌面端侧边栏 */}
-    //         <div className="hidden md:flex md:w-64 md:flex-col bg-orange-100">
-    //             <div className="p-4 text-center">
-    //                 <div className="text-4xl mb-2">🐕</div>
-    //                 <h2 className="text-xl font-bold text-orange-600">
-    //                     TripDoge
-    //                 </h2>
-    //             </div>
-    //             <div className="flex-1 overflow-y-auto">
-    //                 <SideMenu/>
-    //             </div>
-    //
-    //             {/*<div className="overflow-scroll border-t border-orange-200 p-4">*/}
-    //             {/*  <Characters />*/}
-    //             {/*</div>*/}
-    //         </div>
-    //
-    //         {/* 主内容区域 */}
-    //         <div className="flex-1 bg-gradient-to-br from-yellow-50 to-orange-50">
-    //             {children}
-    //         </div>
-    //     </div>
-    // );
-
 
     return (
         <div className="min-h-screen flex flex-col md:flex-row">
@@ -125,7 +113,7 @@ export default function ChatLayout({
 
             {/* 助手列表侧边栏 */}
             <div className="w-60 hidden md:flex flex-col bg-orange-100">
-                <Characters />
+                <Characters contacts={contacts}/>
             </div>
 
             {/* 主内容区域 */}
