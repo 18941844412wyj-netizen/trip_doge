@@ -206,7 +206,6 @@ public class DocController {
                     .object(docVO.getFileUrl())
                     .build()
             );
-
             byte[] bytes = inputStream.readAllBytes();
             inputStream.close();
 

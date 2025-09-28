@@ -44,7 +44,10 @@ public enum ErrorCode {
 
     // 权限相关错误码 (10500-10599)
     NO_AUTH(10500, "无权限访问"),
-    NOT_FOUND(10404, "资源不存在");
+    NOT_FOUND(10404, "资源不存在"),
+
+    // Minio
+    NO_FOUND_FILE(10600, "文件不存在");
 
     private final int code;
     private final String message;
