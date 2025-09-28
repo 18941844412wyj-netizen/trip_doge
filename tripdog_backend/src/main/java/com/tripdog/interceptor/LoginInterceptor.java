@@ -31,7 +31,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         // 获取请求URI和方法
         String requestURI = request.getRequestURI();
         String method = request.getMethod();
-        log.debug("登录拦截器检查: {} {}", method, requestURI);
+        log.debug("登录拦截器处理请求: {} {}", method, requestURI);
 
         // 对于OPTIONS请求（预检请求），直接放行
         if ("OPTIONS".equalsIgnoreCase(method)) {

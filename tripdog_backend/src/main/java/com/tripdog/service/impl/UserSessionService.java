@@ -2,10 +2,14 @@ package com.tripdog.service.impl;
 
 import com.tripdog.common.RedisService;
 import com.tripdog.model.vo.UserInfoVO;
+import com.tripdog.utils.TokenUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -48,7 +52,7 @@ public class UserSessionService {
             String existingToken = redisService.getString(userTokenKey);
             if (existingToken != null) {
                 redisService.delete(SESSION_KEY_PREFIX + existingToken);
-                log.info("删除用户 {} 的旧session: {}", userInfo.getId(), existingToken);
+                log.debug("删除用户 {} 的旧session", userInfo.getId());
             }
 
             // 保存用户信息到Redis，设置过期时间
@@ -57,7 +61,7 @@ public class UserSessionService {
             // 保存用户ID到token的映射，便于管理
             redisService.setString(userTokenKey, token, SESSION_TIMEOUT, TimeUnit.MINUTES);
 
-            log.info("为用户 {} 创建session成功，token: {}", userInfo.getId(), token);
+            log.debug("为用户 {} 创建session成功", userInfo.getId());
             return token;
 
         } catch (Exception e) {
@@ -223,5 +227,98 @@ public class UserSessionService {
      */
     private String generateToken() {
         return UUID.randomUUID().toString().replace("-", "") + System.currentTimeMillis();
+    }
+
+    // ==================== 用户上下文相关方法 ====================
+
+    /**
+     * 获取当前请求的HttpServletRequest对象
+     *
+     * @return HttpServletRequest对象，如果不在请求上下文中则返回null
+     */
+    private HttpServletRequest getCurrentRequest() {
+        try {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            return attributes != null ? attributes.getRequest() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 获取当前登录用户信息
+     * 优先从拦截器设置的request属性中获取，如果获取失败则从Redis获取
+     *
+     * @return 当前登录用户信息，如果未登录则返回null
+     */
+    public UserInfoVO getCurrentUser() {
+        // 优先从request属性获取（拦截器已经验证并设置）
+        HttpServletRequest request = getCurrentRequest();
+        if (request != null) {
+            Object loginUser = request.getAttribute("loginUser");
+            if (loginUser instanceof UserInfoVO) {
+                return (UserInfoVO) loginUser;
+            }
+        }
+
+        // fallback：从Redis获取
+        return getCurrentUserFromRedis();
+    }
+
+    /**
+     * 备用方法：从token直接获取用户信息
+     * 当从request属性获取失败时使用
+     */
+    private UserInfoVO getCurrentUserFromRedis() {
+        try {
+            String token = getCurrentToken();
+            if (token != null) {
+                return getSession(token);
+            }
+        } catch (Exception e) {
+            // 记录错误但不影响正常流程
+        }
+        return null;
+    }
+
+    /**
+     * 获取当前用户的token
+     * 优先从拦截器设置的request属性中获取，如果没有则从请求头获取
+     *
+     * @return 当前用户的token，如果未登录则返回null
+     */
+    public String getCurrentToken() {
+        HttpServletRequest request = getCurrentRequest();
+        if (request != null) {
+            // 优先从request属性获取（拦截器已设置）
+            String token = (String) request.getAttribute("userToken");
+            if (token != null) {
+                return token;
+            }
+
+            // fallback：从请求头获取
+            return TokenUtils.extractToken(request);
+        }
+        return null;
+    }
+
+    /**
+     * 获取当前用户ID
+     *
+     * @return 当前用户ID，如果未登录则返回null
+     */
+    public Long getCurrentUserId() {
+        UserInfoVO user = getCurrentUser();
+        return user != null ? user.getId() : null;
+    }
+
+    /**
+     * 获取当前用户昵称
+     *
+     * @return 当前用户昵称，如果未登录则返回null
+     */
+    public String getCurrentUserNickname() {
+        UserInfoVO user = getCurrentUser();
+        return user != null ? user.getNickname() : null;
     }
 }

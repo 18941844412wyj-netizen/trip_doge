@@ -10,13 +10,11 @@ import com.tripdog.model.vo.UserInfoVO;
 import com.tripdog.service.ConversationService;
 import com.tripdog.service.RoleService;
 import com.tripdog.service.impl.UserSessionService;
-import com.tripdog.utils.TokenUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +34,7 @@ public class RoleController {
     private final ConversationMapper conversationMapper;
     private final UserSessionService userSessionService;
 
+
     /**
      * 获取用户与角色对话列表
      */
@@ -45,14 +44,9 @@ public class RoleController {
             @ApiResponse(responseCode = "10105", description = "用户未登录")
     })
     @PostMapping("/list")
-    public Result<List<RoleInfoVO>> getActiveRoles(HttpServletRequest request) {
-        // 从请求中提取token并获取用户信息
-        String token = TokenUtils.extractToken(request);
-        if (token == null) {
-            return Result.error(ErrorCode.USER_NOT_LOGIN);
-        }
-        
-        UserInfoVO userInfo = userSessionService.getSession(token);
+    public Result<List<RoleInfoVO>> getActiveRoles() {
+        // 从用户会话服务获取当前登录用户信息
+        UserInfoVO userInfo = userSessionService.getCurrentUser();
         if(userInfo == null) {
             return Result.error(ErrorCode.USER_NOT_LOGIN);
         }

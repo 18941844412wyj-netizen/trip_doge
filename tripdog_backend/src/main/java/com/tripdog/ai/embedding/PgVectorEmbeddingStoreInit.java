@@ -25,6 +25,9 @@ import lombok.RequiredArgsConstructor;
 public class PgVectorEmbeddingStoreInit {
     final String ROLE_ID = "roleId";
     final String USER_ID = "userId";
+    final String DOCUMENT_ID = "fileId";
+    final String FILE_NAME = "fileName";
+    final String UPLOAD_TIME = "uploadTime";
     final PgVectorProperties pgVectorProperties;
 
     @Bean
@@ -53,8 +56,16 @@ public class PgVectorEmbeddingStoreInit {
             .documentTransformer(dc -> {
                 Long roleId = (Long) ThreadLocalUtils.get(ROLE_ID);
                 Long userId = (Long) ThreadLocalUtils.get(USER_ID);
+                String fileId = (String) ThreadLocalUtils.get(DOCUMENT_ID);
+                String fileName = (String) ThreadLocalUtils.get(FILE_NAME);
+                String uploadTime = (String) ThreadLocalUtils.get(UPLOAD_TIME);
+
                 if(roleId != null) dc.metadata().put(ROLE_ID, roleId);
                 if(userId != null) dc.metadata().put(USER_ID, userId);
+                if(StringUtils.hasText(fileId)) dc.metadata().put(DOCUMENT_ID, fileId);
+                if(StringUtils.hasText(fileName)) dc.metadata().put(FILE_NAME, fileName);
+                if(StringUtils.hasText(uploadTime)) dc.metadata().put(UPLOAD_TIME, uploadTime);
+
                 return dc;
             })
             .build();
